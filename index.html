@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print">
+
+    <title>SimpleAciUiLogServer by datacenter</title>
+  </head>
+
+  <body>
+
+    <header>
+      <div class="container">
+        <h1>SimpleAciUiLogServer</h1>
+        <h2>A Simple HTTP server that acts as an APIC UI remote API Inspector.</h2>
+
+        <section id="downloads">
+          <a href="https://github.com/datacenter/SimpleAciUiLogServer/zipball/master" class="btn">Download as .zip</a>
+          <a href="https://github.com/datacenter/SimpleAciUiLogServer/tarball/master" class="btn">Download as .tar.gz</a>
+          <a href="https://github.com/datacenter/SimpleAciUiLogServer" class="btn btn-github"><span class="icon"></span>View on GitHub</a>
+        </section>
+      </div>
+    </header>
+
+    <div class="container">
+      <section id="main_content">
+        <h1></h1>
+
+<h1>
+<a id="simpleaciuilogserver" class="anchor" href="#simpleaciuilogserver" aria-hidden="true"><span class="octicon octicon-link"></span></a>SimpleAciUiLogServer</h1>
+
+<p>A Simple HTTP server that accepts POSTs from the APIC UI as a remote API
+Inspector.</p>
+
+<p>The simplest method to use this module is to execute it as a standalone script:</p>
+
+<div class="highlight highlight-bash"><pre>    $ SimpleAci
+    SimpleAciUiLogServer     SimpleAciUiLogServer.py
+    $ SimpleAciUiLogServer
+    serving at:
+    http://10.1.2.11:8987/apiinspector
+
+    08:17:14 DEBUG -
+      method: GET
+      url: http://10.1.2.1/api/subscriptionRefresh.json<span class="pl-k">?</span>id=72057843163791365
+      response: {<span class="pl-s1"><span class="pl-pds">"</span>imdata<span class="pl-pds">"</span></span>:[]}
+
+    08:17:14 DEBUG -
+      method: GET
+      url: http://10.1.2.1/api/subscriptionRefresh.json<span class="pl-k">?</span>id=72057843163791488
+      response: {<span class="pl-s1"><span class="pl-pds">"</span>imdata<span class="pl-pds">"</span></span>:[]}
+
+    08:17:14 DEBUG -
+      method: GET
+      url: http://10.1.2.1/api/subscriptionRefresh.json<span class="pl-k">?</span>id=72057843163791514
+      response: {<span class="pl-s1"><span class="pl-pds">"</span>imdata<span class="pl-pds">"</span></span>:[]}</pre></div>
+
+<p>The standalone script can be invoked using any of these commands:</p>
+
+<ul>
+<li>SimpleAciUiLogServer</li>
+<li>SimpleAciUiLogServer.py</li>
+<li>acilogserv</li>
+</ul>
+
+<p>The standalone script also allows you to set several options:</p>
+
+<ul>
+<li>-a or --apicip: The IP address of an APIC or an IP address on the same subnet
+as the APIC.  This allows the standalone server to be able to print the
+correct IP address when it announces what IP address, port and location
+it is listening on if the server is multi-homed.</li>
+<li>-p or --port: The port the server should listen on.</li>
+<li>-l or --location: The local path that the server should look for, anything
+sent to the server outside of this location will result in the server
+returinging a 404.  The default is /apiinspector</li>
+<li>-r or --logrequests: This will cause the server to log a message about the
+POST request to sys.stderr, the default is False, possible values are True and
+False.</li>
+</ul>
+
+<p>When the module is run as a standalone script it simply prints the log messages
+to sys.stdout in a somewhat easy to read format.</p>
+
+<p>You can also import the module and use it as a server as part of another
+application.  This provides you with flexibility as it allows you to register
+callback functions for each "method" found in the log message.  From this, you
+could do things like use the data from the log message for other purposes or
+filter out specific logs messages based on the "method."  The methods that the
+APIC uses are:</p>
+
+<ul>
+<li>GET</li>
+<li>POST</li>
+<li>EventChannelMessage</li>
+<li>undefined - NOTE: it seems like this method gets set for unknown reasons.
+I need to investigate it more.</li>
+</ul>
+
+<p>Example:</p>
+
+<div class="highlight highlight-python"><pre>    <span class="pl-k">&gt;&gt;&gt;</span>
+    <span class="pl-k">&gt;&gt;&gt;</span> <span class="pl-k">from</span> SimpleAciUiLogServer.SimpleAciUiLogServer <span class="pl-k">import</span> \
+    ... SimpleAciUiLogServer
+    <span class="pl-k">&gt;&gt;&gt;</span> <span class="pl-st">def</span> GET(<span class="pl-k">**</span>kwargs):
+    ...     <span class="pl-k">print</span> <span class="pl-s1"><span class="pl-pds">"</span>Got a GET<span class="pl-pds">"</span></span>
+    ...
+    <span class="pl-k">&gt;&gt;&gt;</span> <span class="pl-st">def</span> POST(<span class="pl-k">**</span>kwargs):
+    ...     <span class="pl-k">print</span> <span class="pl-s1"><span class="pl-pds">"</span>Kwargs/params: <span class="pl-c1">{0}</span><span class="pl-pds">"</span></span>.format(kwargs)
+    ...
+    <span class="pl-k">&gt;&gt;&gt;</span> server <span class="pl-k">=</span> SimpleAciUiLogServer((<span class="pl-s1"><span class="pl-pds">"</span><span class="pl-pds">"</span></span>, <span class="pl-c1">8987</span>), <span class="pl-vpf">location</span><span class="pl-k">=</span><span class="pl-s1"><span class="pl-pds">'</span>/acilogs<span class="pl-pds">'</span></span>)
+    <span class="pl-k">&gt;&gt;&gt;</span> server.register_function(GET)
+    <span class="pl-k">&gt;&gt;&gt;</span> server.register_function(POST)
+    <span class="pl-k">&gt;&gt;&gt;</span> server.serve_forever()
+    Got a GET
+    Got a GET
+    <span class="pl-c1">0</span>8:<span class="pl-c1">50</span>:<span class="pl-c1">52</span> DEBUG <span class="pl-k">-</span>
+      method: Event Channel Message
+      response: {<span class="pl-s1"><span class="pl-pds">"</span>subscriptionId<span class="pl-pds">"</span></span>:[<span class="pl-s1"><span class="pl-pds">"</span>72057843163791520<span class="pl-pds">"</span></span>,<span class="pl-s1"><span class="pl-pds">"</span>72057843163791488<span class="pl-pds">"</span></span>,
+      <span class="pl-s1"><span class="pl-pds">"</span>72057843163791521<span class="pl-pds">"</span></span>,<span class="pl-s1"><span class="pl-pds">"</span>72057843163791516<span class="pl-pds">"</span></span>],<span class="pl-s1"><span class="pl-pds">"</span>imdata<span class="pl-pds">"</span></span>:[{<span class="pl-s1"><span class="pl-pds">"</span>fvTenant<span class="pl-pds">"</span></span>:{
+      <span class="pl-s1"><span class="pl-pds">"</span>attributes<span class="pl-pds">"</span></span>:{<span class="pl-s1"><span class="pl-pds">"</span>childAction<span class="pl-pds">"</span></span>:<span class="pl-s1"><span class="pl-pds">"</span><span class="pl-pds">"</span></span>,<span class="pl-s1"><span class="pl-pds">"</span>dn<span class="pl-pds">"</span></span>:<span class="pl-s1"><span class="pl-pds">"</span>uni/tn-mtimm-simple2<span class="pl-pds">"</span></span>,
+      <span class="pl-s1"><span class="pl-pds">"</span>modTs<span class="pl-pds">"</span></span>:<span class="pl-s1"><span class="pl-pds">"</span>2014-11-24T12:50:36.706-04:00<span class="pl-pds">"</span></span>,<span class="pl-s1"><span class="pl-pds">"</span>rn<span class="pl-pds">"</span></span>:<span class="pl-s1"><span class="pl-pds">"</span><span class="pl-pds">"</span></span>,<span class="pl-s1"><span class="pl-pds">"</span>status<span class="pl-pds">"</span></span>:<span class="pl-s1"><span class="pl-pds">"</span>deleted<span class="pl-pds">"</span></span>}}}]}
+
+    <span class="pl-c1">0</span>8:<span class="pl-c1">50</span>:<span class="pl-c1">53</span> DEBUG <span class="pl-k">-</span>
+      method: Event Channel Message
+      response: {<span class="pl-s1"><span class="pl-pds">"</span>subscriptionId<span class="pl-pds">"</span></span>:[<span class="pl-s1"><span class="pl-pds">"</span>72057843163791523<span class="pl-pds">"</span></span>],
+      <span class="pl-s1"><span class="pl-pds">"</span>imdata<span class="pl-pds">"</span></span>:[{<span class="pl-s1"><span class="pl-pds">"</span>fvRsTenantMonPol<span class="pl-pds">"</span></span>:{<span class="pl-s1"><span class="pl-pds">"</span>attributes<span class="pl-pds">"</span></span>:{<span class="pl-s1"><span class="pl-pds">"</span>childAction<span class="pl-pds">"</span></span>:<span class="pl-s1"><span class="pl-pds">"</span><span class="pl-pds">"</span></span>,
+      <span class="pl-s1"><span class="pl-pds">"</span>dn<span class="pl-pds">"</span></span>:<span class="pl-s1"><span class="pl-pds">"</span>uni/tn-mtimm-simple2/rsTenantMonPol<span class="pl-pds">"</span></span>,
+      <span class="pl-s1"><span class="pl-pds">"</span>modTs<span class="pl-pds">"</span></span>:<span class="pl-s1"><span class="pl-pds">"</span>2014-11-24T12:50:36.706-04:00<span class="pl-pds">"</span></span>,<span class="pl-s1"><span class="pl-pds">"</span>rn<span class="pl-pds">"</span></span>:<span class="pl-s1"><span class="pl-pds">"</span><span class="pl-pds">"</span></span>,<span class="pl-s1"><span class="pl-pds">"</span>status<span class="pl-pds">"</span></span>:<span class="pl-s1"><span class="pl-pds">"</span>deleted<span class="pl-pds">"</span></span>}}}]}
+
+    Kwargs<span class="pl-k">/</span>params: {<span class="pl-s1"><span class="pl-pds">'</span>data<span class="pl-pds">'</span></span>: {<span class="pl-s1"><span class="pl-pds">'</span>url<span class="pl-pds">'</span></span>:
+    <span class="pl-s1"><span class="pl-pds">'</span>http://10.1.2.1/api/node/mo/uni.json<span class="pl-pds">'</span></span>, <span class="pl-s1"><span class="pl-pds">'</span>response<span class="pl-pds">'</span></span>: <span class="pl-s1"><span class="pl-pds">'</span>{"imdata":[]}<span class="pl-pds">'</span></span>,
+    <span class="pl-s1"><span class="pl-pds">'</span>preamble<span class="pl-pds">'</span></span>: <span class="pl-s1"><span class="pl-pds">'</span>08:50:53 DEBUG - <span class="pl-pds">'</span></span>, <span class="pl-s1"><span class="pl-pds">'</span>method<span class="pl-pds">'</span></span>: <span class="pl-s1"><span class="pl-pds">'</span>POST<span class="pl-pds">'</span></span>, <span class="pl-s1"><span class="pl-pds">'</span>payload<span class="pl-pds">'</span></span>:
+    <span class="pl-s1"><span class="pl-pds">'</span>{"polUni":{"attributes":{"dn":"uni","status":"modified"},<span class="pl-ii"></span></span>
+    <span class="pl-s1"><span class="pl-pds">"</span>children<span class="pl-pds">"</span></span>:[{<span class="pl-s1"><span class="pl-pds">"</span>fvTenant<span class="pl-pds">"</span></span>:{<span class="pl-s1"><span class="pl-pds">"</span>attributes<span class="pl-pds">"</span></span>:{<span class="pl-s1"><span class="pl-pds">"</span>dn<span class="pl-pds">"</span></span>:<span class="pl-s1"><span class="pl-pds">"</span>uni/tn-mtimm-simple2<span class="pl-pds">"</span></span>,
+    <span class="pl-s1"><span class="pl-pds">"</span>status<span class="pl-pds">"</span></span>:<span class="pl-s1"><span class="pl-pds">"</span>deleted<span class="pl-pds">"</span></span>},<span class="pl-s1"><span class="pl-pds">"</span>children<span class="pl-pds">"</span></span>:[]}}]}}<span class="pl-s1"><span class="pl-pds">'</span>}, <span class="pl-pds">'</span></span>layout<span class="pl-s1"><span class="pl-pds">'</span>: <span class="pl-pds">'</span></span>PatternLayout<span class="pl-s1"><span class="pl-pds">'</span>}<span class="pl-ii"></span></span>
+    Got a GET</pre></div>
+
+<p>Note that since there were no functions registered for the EventChannelMessage
+method, it went the default route which is to print info about the log message.
+However, both GET and POST have registered functions and they do different
+things than the default dispatch action.</p>
+
+<p>It is also possible to override the _dispatch method to create your own
+dispatch logic, for example rather than dispatch based on method maybe you
+would like to dispatch based on subscription id.</p>
+
+<p>Once the server is running, you can start remote logging from the APIC UI by
+selecting "Start Remote Logging" from the 'welcome, username' menu in the top
+right corner of the APIC UI.</p>
+
+<p><img src="https://raw.githubusercontent.com/datacenter/SimpleAciUiLogServer/master/start_remote_logging.png" alt="Image of starting remote logging menu item"></p>
+
+<p>Then enter the URL the server is listening on:</p>
+
+<p><img src="https://raw.githubusercontent.com/datacenter/SimpleAciUiLogServer/master/enter_remote_logging_info.png" alt="Image of entering server URL"></p>
+
+<p>If you need to disable the remote logging from the APIC, you can do so from
+the same menu and selecting 'Stop Remote Logging.'</p>
+
+<p><img src="https://raw.githubusercontent.com/datacenter/SimpleAciUiLogServer/master/stop_remote_logging.png" alt="Image of starting remote logging menu item"></p>
+
+<p>Limitations: Does not support HTTPS/TLS at this time.</p>
+
+<p>Written by <a href="https://github.com/mtimm" class="user-mention">@mtimm</a></p>
+
+<p>Based on code written by Fredrik Lundh &amp; Brian Quinlan.</p>
+      </section>
+    </div>
+
+    
+  </body>
+</html>
