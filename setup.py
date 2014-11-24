@@ -12,7 +12,7 @@ exec(open(os.path.join('SimpleAciUiLogServer', 'version.py')).read())
 
 PKGNAME = 'SimpleAciUiLogServer'
 URL = 'https://github.com/datacenter/' + PKGNAME
-DOWNLOADURL = URL + '/' + str(__version__)
+DOWNLOADURL = URL + '/releases/tag/' + str(__version__)
 
 setup(
     name=PKGNAME,
