@@ -27,7 +27,7 @@ setup(
     author_email='mtimm@cisco.com',
     zip_safe=False,
     classifiers=(
-        'Development Status :: 3 - Beta',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'Natural Language :: English',
         'License :: OSI Approved :: Apache Software License',
