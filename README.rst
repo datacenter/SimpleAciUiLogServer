@@ -120,16 +120,16 @@ Once the server is running, you can start remote logging from the APIC UI by
 selecting "Start Remote Logging" from the 'welcome, username' menu in the top
 right corner of the APIC UI.
 
-.. image:: https://raw.github.com/datacenter/SimpleAciUiLogServer/c6ba4581fa5b18069b638c672a54c5066585c0ef/start_remote_logging.png
+.. image:: https://raw.githubusercontent.com/datacenter/SimpleAciUiLogServer/master/start_remote_logging.png
 
 Then enter the URL the server is listening on:
 
-.. image:: https://raw.github.com/datacenter/SimpleAciUiLogServer/c6ba4581fa5b18069b638c672a54c5066585c0ef/enter_remote_logging_info.png
+.. image:: https://raw.githubusercontent.com/datacenter/SimpleAciUiLogServer/master/enter_remote_logging_info.png
 
 If you need to disable the remote logging from the APIC, you can do so from
 the same menu and selecting 'Stop Remote Logging.'
 
-.. image:: https://raw.github.com/datacenter/SimpleAciUiLogServer/c6ba4581fa5b18069b638c672a54c5066585c0ef/stop_remote_logging.png
+.. image:: https://raw.githubusercontent.com/datacenter/SimpleAciUiLogServer/master/stop_remote_logging.png
 
 Limitations: Does not support HTTPS/TLS at this time.
 
