@@ -64,7 +64,7 @@ Example:
 
     >>>
     >>> from SimpleAciUiLogServer.SimpleAciUiLogServer import \
-        SimpleAciUiLogServer
+    ... SimpleAciUiLogServer
     >>> def GET(**kwargs):
     ...     print "Got a GET"
     ...
@@ -110,7 +110,7 @@ dispatch based on subscription id.
 
 Once the server is running, you can start remote logging from the APIC UI by
 selecting "Start Remote Logging" from the 'welcome, username' menu in the top
-left corner of the APIC UI.
+right corner of the APIC UI.
 
 Limitations: Does not support HTTPS/TLS at this.
 
