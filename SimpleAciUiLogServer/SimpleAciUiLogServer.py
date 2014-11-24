@@ -110,7 +110,7 @@ Once the server is running, you can start remote logging from the APIC UI by
 selecting "Start Remote Logging" from the 'welcome, username' menu in the top
 right corner of the APIC UI.
 
-Limitations: Does not support HTTPS/TLS at this.
+Limitations: Does not support HTTPS/TLS at this time.
 
 Written by Mike Timm (mtimm@cisco.com)
 Based on code written by Fredrik Lundh & Brian Quinlan.
