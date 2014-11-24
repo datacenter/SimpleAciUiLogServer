@@ -73,10 +73,10 @@ Example:
     >>>
     >>> from SimpleAciUiLogServer.SimpleAciUiLogServer import \
     ... SimpleAciUiLogServer
-    >>> def GET(\**kwargs):
+    >>> def GET(**kwargs):
     ...     print "Got a GET"
     ...
-    >>> def POST(\**kwargs):
+    >>> def POST(**kwargs):
     ...     print "Kwargs/params: {0}".format(kwargs)
     ...
     >>> server = SimpleAciUiLogServer(("", 8987), location='/acilogs')
