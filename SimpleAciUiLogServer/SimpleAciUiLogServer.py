@@ -3,115 +3,6 @@
 A Simple HTTP server that accepts POSTs from the APIC UI as a remote API
 Inspector.
 
-The simplest method to use this module is to execute it as a standalone script:
-
-    $ SimpleAci
-    SimpleAciUiLogServer     SimpleAciUiLogServer.py
-    $ SimpleAciUiLogServer
-    serving at:
-    http://10.1.2.11:8987/apiinspector
-
-    08:17:14 DEBUG -
-      method: GET
-      url: http://10.1.2.1/api/subscriptionRefresh.json?id=72057843163791365
-      response: {"imdata":[]}
-
-    08:17:14 DEBUG -
-      method: GET
-      url: http://10.1.2.1/api/subscriptionRefresh.json?id=72057843163791488
-      response: {"imdata":[]}
-
-    08:17:14 DEBUG -
-      method: GET
-      url: http://10.1.2.1/api/subscriptionRefresh.json?id=72057843163791514
-      response: {"imdata":[]}
-
-The standalone script can be invoked using any of these commands:
-
-* SimpleAciUiLogServer
-* SimpleAciUiLogServer.py
-* acilogserv
-
-The standalone script also allows you to set several options:
-
-* -p or --port: The port the server should listen on.
-* -l or --location: The local path that the server should look for, anything
-  sent to the server outside of this location will result in the server
-  returinging a 404.  The default is /apiinspector
-* -r or --logrequests: This will cause the server to log a message about the
-  POST request to sys.stderr, the default is False, possible values are True and
-  False.
-
-When the module is run as a standalone script it simply prints the log messages
-to sys.stdout in a somewhat easy to read format.
-
-You can also import the module and use it as a server as part of another
-application.  This provides you with flexibility as it allows you to register
-callback functions for each "method" found in the log message.  From this, you
-could do things like use the data from the log message for other purposes or
-filter out specific logs messages based on the "method."  The methods that the
-APIC uses are:
-
-* GET
-* POST
-* EventChannelMessage
-* undefined - NOTE: it seems like this method gets set for unknown reasons.
-  I need to investigate it more.
-
-Example:
-
-    >>>
-    >>> from SimpleAciUiLogServer.SimpleAciUiLogServer import \
-    ... SimpleAciUiLogServer
-    >>> def GET(**kwargs):
-    ...     print "Got a GET"
-    ...
-    >>> def POST(**kwargs):
-    ...     print "Kwargs/params: {0}".format(kwargs)
-    ...
-    >>> server = SimpleAciUiLogServer(("", 8987), location='/acilogs')
-    >>> server.register_function(GET)
-    >>> server.register_function(POST)
-    >>> server.serve_forever()
-    Got a GET
-    Got a GET
-    08:50:52 DEBUG -
-      method: Event Channel Message
-      response: {"subscriptionId":["72057843163791520","72057843163791488",
-      "72057843163791521","72057843163791516"],"imdata":[{"fvTenant":{
-      "attributes":{"childAction":"","dn":"uni/tn-mtimm-simple2",
-      "modTs":"2014-11-24T12:50:36.706-04:00","rn":"","status":"deleted"}}}]}
-
-    08:50:53 DEBUG -
-      method: Event Channel Message
-      response: {"subscriptionId":["72057843163791523"],
-      "imdata":[{"fvRsTenantMonPol":{"attributes":{"childAction":"",
-      "dn":"uni/tn-mtimm-simple2/rsTenantMonPol",
-      "modTs":"2014-11-24T12:50:36.706-04:00","rn":"","status":"deleted"}}}]}
-
-    Kwargs/params: {'data': {'url':
-    'http://10.1.2.1/api/node/mo/uni.json', 'response': '{"imdata":[]}',
-    'preamble': '08:50:53 DEBUG - ', 'method': 'POST', 'payload':
-    '{"polUni":{"attributes":{"dn":"uni","status":"modified"},
-    "children":[{"fvTenant":{"attributes":{"dn":"uni/tn-mtimm-simple2",
-    "status":"deleted"},"children":[]}}]}}'}, 'layout': 'PatternLayout'}
-    Got a GET
-
-Note that since we did not register a function for the EventChannelMessage
-method, it went the default route which is to print info about the log message.
-However, both GET and POST have registered functions and they do different
-things than the default dispatch action.
-
-You can also override the _dispatch method to create your own dispatch logic,
-for example rather than dispatch based on method maybe you would like to
-dispatch based on subscription id.
-
-Once the server is running, you can start remote logging from the APIC UI by
-selecting "Start Remote Logging" from the 'welcome, username' menu in the top
-right corner of the APIC UI.
-
-Limitations: Does not support HTTPS/TLS at this time.
-
 Written by Mike Timm (mtimm@cisco.com)
 Based on code written by Fredrik Lundh & Brian Quinlan.
 """
@@ -385,10 +276,21 @@ class SimpleAciUiLogServer(SocketServer.TCPServer,
 
 def main():
     parser = ArgumentParser('Remote APIC API Inspector and GUI Log Server')
+    parser.add_argument('-a', '--apicip', help='If you have a multihomed ' +
+                                               'system, where the apic is ' +
+                                               'on a private network, the ' +
+                                               'server will print the ' +
+                                               'ip address your local ' +
+                                               'system has a route to ' +
+                                               '8.8.8.8.  If you want the ' +
+                                               'server to print a more ' +
+                                               'accurate ip address for ' +
+                                               'the server you can tell it ' +
+                                               'the apicip address.',
+                        required=False, default='8.8.8.8')
     parser.add_argument('-p', '--port', help='Local port to listen on,' +
                                              ' default=8987', default=8987,
-                        type=int,
-                        required=False)
+                        type=int, required=False)
     parser.add_argument('-l', '--location', help='Location that transaction ' +
                                                  'logs are being sent to, ' +
                                                  'default=/apiinspector',
@@ -415,7 +317,13 @@ def main():
     #server.register_function(DELETE)
     #server.register_function(undefined)
     #server.register_function(EventChannelMessage)
-    ip = [(s.connect(('8.8.8.8', 80)), s.getsockname()[0], s.close()) for s in [
+
+    # This simply sets up a socket for UDP which has a small trick to it.
+    # It won't send any packets out that socket, but this will allow us to
+    # easily and quickly interogate the socket to get the source IP address
+    # used to connect to this subnet which we can then print out to make for
+    # and easy copy/paste in the APIC UI.
+    ip = [(s.connect((args.apicip, 80)), s.getsockname()[0], s.close()) for s in [
         socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]
     print "serving at:"
     print "http://" + str(ip) + ":" + str(args.port) + args.location

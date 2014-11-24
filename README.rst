@@ -7,6 +7,8 @@ Inspector.
 
 The simplest method to use this module is to execute it as a standalone script:
 
+.. code-block:: bash
+
     $ SimpleAci
     SimpleAciUiLogServer     SimpleAciUiLogServer.py
     $ SimpleAciUiLogServer
@@ -36,6 +38,10 @@ The standalone script can be invoked using any of these commands:
 
 The standalone script also allows you to set several options:
 
+* -a or --apicip: The IP address of an APIC or an IP address on the same subnet
+  as the APIC.  This allows the standalone server to be able to print the
+  correct IP address when it announces what IP address, port and location
+  it is listening on if the server is multi-homed.
 * -p or --port: The port the server should listen on.
 * -l or --location: The local path that the server should look for, anything
   sent to the server outside of this location will result in the server
@@ -61,6 +67,8 @@ APIC uses are:
   I need to investigate it more.
 
 Example:
+
+.. code-block:: python
 
     >>>
     >>> from SimpleAciUiLogServer.SimpleAciUiLogServer import \
@@ -99,18 +107,29 @@ Example:
     "status":"deleted"},"children":[]}}]}}'}, 'layout': 'PatternLayout'}
     Got a GET
 
-Note that since we did not register a function for the EventChannelMessage
+Note that since there were no functions registered for the EventChannelMessage
 method, it went the default route which is to print info about the log message.
 However, both GET and POST have registered functions and they do different
 things than the default dispatch action.
 
-You can also override the \_dispatch method to create your own dispatch logic,
-for example rather than dispatch based on method maybe you would like to
-dispatch based on subscription id.
+It is also possible to override the \_dispatch method to create your own
+dispatch logic, for example rather than dispatch based on method maybe you
+would like to dispatch based on subscription id.
 
 Once the server is running, you can start remote logging from the APIC UI by
 selecting "Start Remote Logging" from the 'welcome, username' menu in the top
 right corner of the APIC UI.
+
+.. image:: https://raw.github.com/datacenter/SimpleAciUiLogServer/c6ba4581fa5b18069b638c672a54c5066585c0ef/start_remote_logging.png
+
+Then enter the URL the server is listening on:
+
+.. image:: https://raw.github.com/datacenter/SimpleAciUiLogServer/c6ba4581fa5b18069b638c672a54c5066585c0ef/enter_remote_logging_info.png
+
+If you need to disable the remote logging from the APIC, you can do so from
+the same menu and selecting 'Stop Remote Logging.'
+
+.. image:: https://raw.github.com/datacenter/SimpleAciUiLogServer/c6ba4581fa5b18069b638c672a54c5066585c0ef/stop_remote_logging.png
 
 Limitations: Does not support HTTPS/TLS at this time.
 

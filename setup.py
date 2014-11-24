@@ -5,19 +5,24 @@ try:
 except ImportError:
     from distutils.core import setup, find_packages
 
-with open('LICENSE') as f:
+with open('LICENSE.txt') as f:
     license = f.read()
 
 exec(open(os.path.join('SimpleAciUiLogServer', 'version.py')).read())
 
+PKGNAME = 'SimpleAciUiLogServer'
+URL = 'https://github.com/datacenter/' + PKGNAME
+DOWNLOADURL = URL + '/' + str(__version__)
+
 setup(
-    name='SimpleAciUiLogServer',
+    name=PKGNAME,
     version=__version__,
     description='A remote API Inspector written in Python',
-    long_description=open('README.md').read(),
+    long_description=open('README.rst').read(),
     packages=find_packages(),
-    url='http://www.cisco.com/go/aci',
-    license='Apache 2.0',
+    url=URL,
+    download_url = DOWNLOADURL,
+    license=license,
     author='Mike Timm',
     author_email='mtimm@cisco.com',
     zip_safe=False,
