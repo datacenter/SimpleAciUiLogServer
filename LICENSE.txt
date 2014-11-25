@@ -1,4 +1,4 @@
-Remote API Inspector
+SimpleAciUiLogServer
 
 Mike Timm - mtimm@cisco.com
 
