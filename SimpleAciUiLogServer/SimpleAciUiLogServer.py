@@ -7,6 +7,7 @@ Written by Mike Timm (mtimm@cisco.com)
 Based on code written by Fredrik Lundh & Brian Quinlan.
 """
 
+import os
 import BaseHTTPServer
 from StringIO import StringIO
 import SocketServer
@@ -17,13 +18,56 @@ import ssl
 import re
 import logging
 import json
+import tempfile
 from argparse import ArgumentParser
+from pkg_resources import resource_string
 
 try:
     import fcntl
 except ImportError:
     fcntl = None
 
+server_cert = """
+-----BEGIN RSA PRIVATE KEY-----
+MIICXAIBAAKBgQC+oA+hYsF3uBIMt7i1ELfUFnyf4/MKM/Ylmy4yBc0/YhqANXYk
+so3+gAGkgRlv9ODdsFS7KvjzyaT0kjgA3ahDPyvtroAOWsdFdHJvtS4Ek1WI1Bee
+0hNZlTmjQgnjp9ENYl9ImGWghcubJhtse5cJhL9c/hq40do4llZjaaEiCQIDAQAB
+AoGAYbd1K7qPCErAXeqT8aVXRo4cZm4YeSN3y4FH5faZZyNoCE7feCJbrZl6vhQ7
+sOtrldi9JpD5uyaju4d00+TMSoFqnTuAYLg4CEUAkAq2Hgg1EfQfPpC8IgYdR5qQ
+hRu0JArXldch1YLHw8GQGkkZe/cJXiHs/FPjmdUQSsydI50CQQDuEecLrSLjuMpE
+i8xjD9cQxSDTHJFDZttVb08fjaKFJk993TsUR2t/eR92OR5m0CFei/RUyYpUaPbk
+1s3Eau7XAkEAzPtnMMKoGR3qfLqXzfmgLwQA0UbeV8PbxRCkaCnSYcpn0qJH7UtS
+Qjb4X6MPA9bNUnydWFgbPgz4MwKRo0q6HwJAP6DxS6GerZZ6GQ/0NJXLOWQ2fbYo
+7QbUoGT7lMdaJJQ0ssMqQyVDifJpgkOJ6JjAEnD9gJvNKPpU4py2qkSaSQJANngr
+0Jo5XwtDD0fqJPLLbRLsQLBLTxkdoj0s4v0SCahmdGNpJ5ZXUn8W+xryV3vR7bRt
+f1dSTefWYH+zQagO0wJBANlNp79CN7ylgXdrhRVQmBsXHN4G8biUUxMYsfK4Ao/i
+Ga3xtkYLv7OmrtY+Gx6w56Jqxyucaka8VBHK0/7JTLE=
+-----END RSA PRIVATE KEY-----
+-----BEGIN CERTIFICATE-----
+MIID+jCCA2OgAwIBAgIJALUh5RwHQhJoMA0GCSqGSIb3DQEBBQUAMIGvMQswCQYD
+VQQGEwJVUzELMAkGA1UECBMCQ0ExETAPBgNVBAcTCFNhbiBKb3NlMRUwEwYDVQQK
+EwxhcGlpbnNwZWN0b3IxHTAbBgNVBAsTFFNpbXBsZUFjaVVpTG9nU2VydmVyMSow
+KAYDVQQDEyFTaW1wbGVBY2lVaUxvZ1NlcnZlci5hcGlpbnNwZWN0b3IxHjAcBgkq
+hkiG9w0BCQEWD210aW1tQGNpc2NvLmNvbTAgFw0xNTAxMjMwMDI1NDJaGA8zMDE0
+MDUyNjAwMjU0Mlowga8xCzAJBgNVBAYTAlVTMQswCQYDVQQIEwJDQTERMA8GA1UE
+BxMIU2FuIEpvc2UxFTATBgNVBAoTDGFwaWluc3BlY3RvcjEdMBsGA1UECxMUU2lt
+cGxlQWNpVWlMb2dTZXJ2ZXIxKjAoBgNVBAMTIVNpbXBsZUFjaVVpTG9nU2VydmVy
+LmFwaWluc3BlY3RvcjEeMBwGCSqGSIb3DQEJARYPbXRpbW1AY2lzY28uY29tMIGf
+MA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC+oA+hYsF3uBIMt7i1ELfUFnyf4/MK
+M/Ylmy4yBc0/YhqANXYkso3+gAGkgRlv9ODdsFS7KvjzyaT0kjgA3ahDPyvtroAO
+WsdFdHJvtS4Ek1WI1Bee0hNZlTmjQgnjp9ENYl9ImGWghcubJhtse5cJhL9c/hq4
+0do4llZjaaEiCQIDAQABo4IBGDCCARQwHQYDVR0OBBYEFN2EqumA49KSEPjLLSni
+UtKth4zQMIHkBgNVHSMEgdwwgdmAFN2EqumA49KSEPjLLSniUtKth4zQoYG1pIGy
+MIGvMQswCQYDVQQGEwJVUzELMAkGA1UECBMCQ0ExETAPBgNVBAcTCFNhbiBKb3Nl
+MRUwEwYDVQQKEwxhcGlpbnNwZWN0b3IxHTAbBgNVBAsTFFNpbXBsZUFjaVVpTG9n
+U2VydmVyMSowKAYDVQQDEyFTaW1wbGVBY2lVaUxvZ1NlcnZlci5hcGlpbnNwZWN0
+b3IxHjAcBgkqhkiG9w0BCQEWD210aW1tQGNpc2NvLmNvbYIJALUh5RwHQhJoMAwG
+A1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEFBQADgYEABPx5cxBNOjWOxZbiRVfpzKac
+MKs4tFNtEmilAY7kvNouGaSl1Yw2fCpGXjstOG0+SxPy34YgeQSVOGQI1KXhd7vk
+nALqxrKiP2rzpZveBkjq5voRpFw2creEXyt76EKQgwRHYJP60Vu3bYnYNoFHdUwE
+TOBaHjC6ZZLRd77dd3s=
+-----END CERTIFICATE-----
+"""
 
 class SimpleLogDispatcher(object):
 
@@ -80,24 +124,36 @@ class SimpleLogDispatcher(object):
             datastring = ""
             paramkeys = params.keys()
             if 'data' in paramkeys:
-                paramkeys2 = params['data'].keys()
                 try:
-                    level = self.loglevel[params['data']['preamble']]
+                    preamble = params['data']['preamble']
+                    level = self.loglevel[preamble.split(" ")[1]]
                 except KeyError:
                     level = logging.DEBUG
-                if 'method' in paramkeys2:
-                    datastring += "  method: {0}\n".format(
+                try:
+                    datastring += "\n    method: {0}\n".format(
                         params['data']['method'])
-                if 'url' in paramkeys2:
-                    datastring += "  url: {0}\n".format(params['data']['url'])
-                if 'payload' in paramkeys2:
+                except KeyError:
+                    datastring += "\n    method: None\n"
+                try:
+                    datastring += "       url: {0}\n".format(
+                        params['data']['url'])
+                except KeyError:
+                    if params['data']['method'] == "Event Channel Message":
+                        datastring += "       url: N/A\n"
+                    else:
+                        datastring += "       url: None\n"
+                try:
                     jstring = params['data']['payload']
                     if self.prettyprint:
                         jstring = json.dumps(json.loads(jstring),
                                                         indent=self.indent)
-                    datastring += " payload: {0}\n".format(jstring)
-                     
-                if 'response' in paramkeys2:
+                    datastring += "   payload: {0}\n".format(jstring)
+                except KeyError:
+                    if params['data']['method'] == "Event Channel Message":
+                        datastring += "   payload: N/A\n"
+                    else:
+                        datastring += "   payload: None\n"
+                try:
                     jstring =  params['data']['response']
                     jdict = json.loads(jstring)
                     try:
@@ -105,21 +161,29 @@ class SimpleLogDispatcher(object):
                     except:
                         # bug!
                         totalCount = '0'
-                    datastring += "  # objects: {0}\n".format(totalCount)
+                    datastring += "    # objs: {0}\n".format(totalCount)
                     if self.prettyprint:
                         if self.strip_imdata:
                             jstring = json.dumps(jdict['im_data'],
                                                  indent=self.indent)
                         else:
                             jstring =  json.dumps(jdict, indent = self.indent)
-                    datastring += "  response:\n{0}\n".format(jstring)
+                    datastring += "  response: {0}\n".format(jstring)
+                except KeyError:
+                    datastring += "  response: None\n"
             logging.log(level, datastring)
             return datastring
 
 
 class SimpleLogRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
-    log_paths = ['/apiinspector']
+    @property
+    def log_paths(self):
+        return self._log_paths
+
+    @log_paths.setter
+    def log_paths(self, value):
+        self._log_paths = value
 
     def is_log_path_valid(self):
         if self.log_paths:
@@ -128,9 +192,35 @@ class SimpleLogRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             # If .log_paths is empty, just assume all paths are legal
             return True
 
+    def send_200_resp(self, response):
+        self.send_response(200)
+        self.send_header("Content-type", "text/text")
+        if response is not None:
+            resplen = str(len(response))
+        else:
+            resplen = 0
+        self.send_header("Content-length", resplen)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
+        if response is not None:
+            self.wfile.write(response)
+
+    def do_GET(self):
+        """Handles the HTTP GET request.
+
+        Simply returns a small amount of info so you can tell the server is
+        functioning.
+        """
+        if not self.is_log_path_valid():
+            self.report_404()
+            return
+        # TODO: Add more info.
+        resp = "The server is working."
+        self.send_200_resp(resp)
+        #self.wfile.write(resp)
 
     def do_POST(self):
-        """Handles the HTTP POST request.
+        """Handles the HTTP/S POST request.
 
         Attempts to interpret all HTTP POST requests as Log calls,
         which are forwarded to the server's _dispatch method for handling.
@@ -171,16 +261,7 @@ class SimpleLogRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             raise
         else:
             # got a valid LOG response
-            self.send_response(200)
-            self.send_header("Content-type", "text/text")
-            if response is not None:
-                resplen = str(len(response))
-            else:
-                resplen = 0
-            self.send_header("Content-length", resplen)
-            self.end_headers()
-            self.wfile.write(response)
-
+            self.send_200_resp(response)
 
     @staticmethod
     def extract_form_fields(item):
@@ -267,16 +348,17 @@ class SimpleAciUiLogServer(SocketServer.TCPServer,
     _send_traceback_header = False
 
 
-    def __init__(self, addr, secure=False, cert=None,
+    def __init__(self, addr, cert=None,
                  requestHandler=SimpleLogRequestHandler,
                  logRequests=False, allow_none=False, bind_and_activate=True,
                  location=None):
         self.logRequests = logRequests
-        self._secure = secure
         self._cert = cert
         self.daemon = True
 
         if location is not None:
+            if not location.startswith("/"):
+                location = "/" + str(location)
             requestHandler.log_paths = [location]
 
         SimpleLogDispatcher.__init__(self, allow_none)
@@ -291,25 +373,10 @@ class SimpleAciUiLogServer(SocketServer.TCPServer,
             flags |= fcntl.FD_CLOEXEC
             fcntl.fcntl(self.fileno(), fcntl.F_SETFD, flags)
 
-        if self.secure:
-            if self.cert is None:
-                raise ValueError("A secure server is being requested but no " +
-                                 "certificate was provided")
+        if self._cert:
             self.socket = ssl.wrap_socket(self.socket,
                                           certfile=self.cert,
                                           server_side=True)
-
-    @property
-    def secure(self):
-        '''
-        This property is used to define if the server is a http
-        or https server.
-        '''
-        return self._secure
-
-    @secure.setter
-    def secure(self, value):
-        self._secure = value
 
     @property
     def cert(self):
@@ -351,11 +418,17 @@ class SimpleAciUiLogServer(SocketServer.TCPServer,
 # use a threaded server so multiple connections can send data simultaneously
 class ThreadingSimpleAciUiLogServer(SocketServer.ThreadingMixIn,
                    SimpleAciUiLogServer):
+    '''
+    Create a threading SimpleAciUiLogServer so that multiple concurrent
+    connections do not block eachother.
+    '''
     pass
 
+# purposely not part of ThreadingSimpleAciUiLogServer
 def serve_forever(servers, poll_interval=0.5):
     '''
-    Handle n number of threading servers
+    Handle n number of threading servers, for non-threading servers simply use
+    the native server_forever function.
     '''
     while True:
         r, w, e = select.select(servers,[],[],poll_interval)
@@ -387,7 +460,7 @@ def main():
     parser.add_argument('-c', '--cert', help='The server certificate file' +
                                                 ' for ssl connections, ' +
                                                 ' default="server.pem"',
-                        default='server.pem', type=str, required=False)
+                        type=str, required=False)
     parser.add_argument('-l', '--location', help='Location that transaction ' +
                                                  'logs are being sent to, ' +
                                                  'default=/apiinspector',
@@ -396,36 +469,51 @@ def main():
                                                     'and response codes to ' +
                                                     'standard error',
                         action='store_true', default=False, required=False)
-    parser.add_argument('-d', '--delete_imdata', help='Strip the imdata ' + 
+    parser.add_argument('-d', '--delete_imdata', help='Strip the imdata ' +
                                                     'from the response and ' +
-                                                    'payload', 
+                                                    'payload',
                         action='store_true', default=False, required=False)
-    parser.add_argument('-n', '--nice-output', help='Pretty print the ' + 
-                                                    'response and payload', 
+    parser.add_argument('-n', '--nice-output', help='Pretty print the ' +
+                                                    'response and payload',
                         action='store_true', default=False, required=False)
     parser.add_argument('-i', '--indent', help='The number of spaces to ' +
                                                     'indent when pretty ' +
                                                     'printing',
                         type=int, default=2, required=False)
+    parser.add_argument('-v', '--verbose', help='Enable debugging',
+                        action='store_true', default=False, required=False)
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.DEBUG,
-                    format='[%(levelname)s]\n%(message)s',
-                    )
+                    format='%(asctime)s %(levelname)s - \n%(message)s')
+
+    if not args.location.startswith("/"):
+        args.location = "/" + str(args.location)
+
+    ThreadingSimpleAciUiLogServer.prettyprint = args.nice_output
+    ThreadingSimpleAciUiLogServer.indent = args.indent
+    ThreadingSimpleAciUiLogServer.strip_imdata = args.delete_imdata
 
     # Instantiate a http server
     http_server = ThreadingSimpleAciUiLogServer(("", args.port),
                                        logRequests=args.requests_log,
                                        location=args.location)
-    ThreadingSimpleAciUiLogServer.prettyprint = args.nice_output
-    ThreadingSimpleAciUiLogServer.indent = args.indent
-    ThreadingSimpleAciUiLogServer.strip_imdata = args.delete_imdata
+
+    if not args.cert:
+        cert_file = tempfile.NamedTemporaryFile(delete=False)
+        cert_file.write(server_cert)
+        cert_file.close()
+        cert = cert_file.name
+    else:
+        cert = args.cert
 
     # Instantiate a https server as well
     https_server = ThreadingSimpleAciUiLogServer(("", args.sslport),
-                                        secure=True, cert=args.cert,
-                                        location=args.location,
+                                        cert=cert, location=args.location,
                                         logRequests=args.requests_log)
+
+    if not args.cert:
+        os.unlink(cert_file.name)
 
     # Example of registering a function for a specific method.  The funciton
     # needs to exist of course.  Note:  undefined seems to be the same as
