@@ -81,10 +81,10 @@ Example:
     >>> import logging
     >>> 
     >>> logging.basicConfig(level=logging.DEBUG)
-    >>> def GET(\*\*kwargs):
+    >>> def GET(**kwargs):
     ...     logging.debug("Got a GET")
     ... 
-    >>> def POST(\*\*kwargs):
+    >>> def POST(**kwargs):
     ...     logging.debug("Kwargs/params: {0}".format(kwargs))
     ... 
     >>> server = SimpleAciUiLogServer(("", 8987), location='/apiinspector')
