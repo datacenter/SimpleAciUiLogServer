@@ -145,8 +145,8 @@ class SimpleLogDispatcher(object):
                 try:
                     jstring = params['data']['payload']
                     if self.prettyprint:
-                        jstring = json.dumps(json.loads(jstring),
-                                                        indent=self.indent)
+                        jstring = "\n" + json.dumps(json.loads(jstring),
+                                                    indent=self.indent)
                     datastring += "   payload: {0}\n".format(jstring)
                 except KeyError:
                     if params['data']['method'] == "Event Channel Message":
@@ -164,10 +164,10 @@ class SimpleLogDispatcher(object):
                     datastring += "    # objs: {0}\n".format(totalCount)
                     if self.prettyprint:
                         if self.strip_imdata:
-                            jstring = json.dumps(jdict['im_data'],
-                                                 indent=self.indent)
+                            jstring = "\n" + json.dumps(jdict['im_data'],
+                                                        indent=self.indent)
                         else:
-                            jstring =  json.dumps(jdict, indent = self.indent)
+                            jstring =  "\n" + json.dumps(jdict, indent = self.indent)
                     datastring += "  response: {0}\n".format(jstring)
                 except KeyError:
                     datastring += "  response: None\n"
