@@ -165,12 +165,9 @@ The servers provided inherit from a log dispatch class that offers some class
 variables to control how the server formats the log messages.  Those variables
 are:
 
-* prettyprint - Format the payload and responses so they are easier to read.
-The default is False.
-* indent - When using prettyprint, how much indent should be used.  The default
-is 4.
-* strip_imdata - When printing responses, do not print the whole response, only
-print the contents of the im_data field.  The default is False.
+* prettyprint - Format the payload and responses so they are easier to read. The default is False.
+* indent - When using prettyprint, how much indent should be used.  The default is 4.
+* strip_imdata - When printing responses, do not print the whole response, only print the contents of the im_data field.  The default is False.
 
 All three of these variables are booleans and should be set to True or False.
 
