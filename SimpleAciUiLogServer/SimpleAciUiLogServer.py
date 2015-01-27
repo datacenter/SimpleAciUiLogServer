@@ -153,27 +153,31 @@ class SimpleLogDispatcher(object):
                         datastring += "   payload: N/A\n"
                     else:
                         datastring += "   payload: None\n"
+                jstring =  params['data']['response']
+                jdict = json.loads(jstring)
                 try:
-                    jstring =  params['data']['response']
-                    jdict = json.loads(jstring)
-                    try:
-                        totalCount = jdict['totalCount']
-                    except:
-                        # bug!
-                        totalCount = '0'
-                    datastring += "    # objs: {0}\n".format(totalCount)
-                    if self.prettyprint:
-                        if self.strip_imdata:
-                            jstring = "\n" + json.dumps(jdict['im_data'],
-                                                        indent=self.indent)
-                        else:
-                            jstring =  "\n" + json.dumps(jdict, indent = self.indent)
-                    datastring += "  response: {0}\n".format(jstring)
-                except KeyError:
-                    datastring += "  response: None\n"
+                    totalCount = jdict['totalCount']
+                except:
+                    # bug!
+                    totalCount = '0'
+                datastring += "    # objs: {0}\n".format(totalCount)
+                datastring += "  response: {0}\n".format(self._strip_imdata(jdict))
             logging.log(level, datastring)
             return datastring
 
+    def _strip_imdata(self, json_dict):
+        if not 'imdata' in json_dict.keys():
+            return "None"
+        if self.strip_imdata:
+            # Yeah we knowingly return an invalid json string
+            return self._pretty_print(json_dict['imdata'])
+        else:
+            return self._pretty_print(json_dict)
+
+    def _pretty_print(self, json_dict):
+        if self.prettyprint:
+            return "\n" + json.dumps(json_dict, indent=self.indent)
+        return json.dumps(json_dict)
 
 class SimpleLogRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
