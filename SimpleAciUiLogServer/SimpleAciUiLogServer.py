@@ -84,10 +84,11 @@ class SimpleLogDispatcher(object):
     prettyprint = False
     strip_imdata = False
 
-    def __init__(self, allow_none=False):
+    def __init__(self, allow_none=False, excludes=[]):
         self.funcs = {}
         self.instance = None
         self.allow_none = allow_none
+        self.excludes = excludes
 
     def register_instance(self, instance):
         self.instance = instance
@@ -121,49 +122,91 @@ class SimpleLogDispatcher(object):
             return func(**params)
         else:
             # Log some default things if no functions are registered.
+            # this also handles any excludes passed in to ignore
+            # logs that may match a certain parameter.
             datastring = ""
             paramkeys = params.keys()
-            if 'data' in paramkeys:
-                try:
-                    preamble = params['data']['preamble']
-                    level = self.loglevel[preamble.split(" ")[1]]
-                except KeyError:
-                    level = logging.DEBUG
-                try:
-                    datastring += "\n    method: {0}\n".format(
-                        params['data']['method'])
-                except KeyError:
-                    datastring += "\n    method: None\n"
-                try:
-                    datastring += "       url: {0}\n".format(
-                        params['data']['url'])
-                except KeyError:
-                    if params['data']['method'] == "Event Channel Message":
-                        datastring += "       url: N/A\n"
-                    else:
-                        datastring += "       url: None\n"
-                try:
-                    jstring = params['data']['payload']
-                    if self.prettyprint:
-                        jstring = "\n" + json.dumps(json.loads(jstring),
-                                                    indent=self.indent)
-                    datastring += "   payload: {0}\n".format(jstring)
-                except KeyError:
-                    if params['data']['method'] == "Event Channel Message":
-                        datastring += "   payload: N/A\n"
-                    else:
-                        datastring += "   payload: None\n"
-                jstring =  params['data']['response']
-                jdict = json.loads(jstring)
-                try:
-                    totalCount = jdict['totalCount']
-                except:
-                    # bug!
-                    totalCount = '0'
+            if 'data' not in paramkeys:
+                datastring = "No data found"
+            else:
+                level = self._get_loglevel(**params)
+                method = self._get_method(**params)
+                url = self._get_url(method, **params)
+                payload = self._get_payload(method, **params)
+                response, response_dict = self._get_response(**params)
+                totalCount = self._get_totalCount(response_dict)
+                # return if we should exclude this log message
+                if self._excludes(method, url):
+                    return ""
+                datastring += "    method: {0}\n".format(method)
+                datastring += "       url: {0}\n".format(url)
+                datastring += "   payload: {0}\n".format(payload)
                 datastring += "    # objs: {0}\n".format(totalCount)
-                datastring += "  response: {0}\n".format(self._strip_imdata(jdict))
+                datastring += "  response: {0}\n".format(self._strip_imdata(response_dict))
             logging.log(level, datastring)
             return datastring
+
+    def _excludes(self, method, url):
+        if method != 'GET':
+            return False
+        for excl in self.excludes:
+            if excl == "subscriptionRefresh" or excl == "aaaRefresh":
+                if str(excl) + ".json" in url:
+                    return True
+            elif excl == "topInfo":
+                if "info.json" in url:
+                    return True
+        return False
+
+    def _get_totalCount(self, response_dict):
+        # extract object count if any
+        try:
+            return response_dict['totalCount']
+        except KeyError: # bug
+            return '0'
+
+    def _get_response(self, **params):
+        # extract the response if any
+        try:
+            response =  params['data']['response']
+            response_dict = json.loads(response)
+        except KeyError:
+            response = "None"
+            response_dict = {}
+        return (response, response_dict)
+
+    def _get_payload(self, method, **params):
+        # extract the payload if any
+        try:
+            payload = params['data']['payload']
+            if self.prettyprint:
+                payload = "\n" + json.dumps(json.loads(payload),
+                                            indent=self.indent)
+        except KeyError:
+            payload = "N/A" if method == "Event Channel Message" else "None"
+        return payload
+
+    def _get_url(self, method, **params):
+        # extract the URL
+        try:
+            url = params['data']['url']
+        except KeyError:
+            url = "N/A" if method == "Event Channel Message" else "None"
+        return url
+
+    def _get_method(self, **params):
+        # extract the HTTP method (verb)
+        try:
+            return params['data']['method']
+        except KeyError:
+            return None
+
+    def _get_loglevel(self, **params):
+        try:
+            preamble = params['data']['preamble']
+            return self.loglevel[preamble.split(" ")[1]]
+        except KeyError:
+            return logging.DEBUG
 
     def _strip_imdata(self, json_dict):
         if not 'imdata' in json_dict.keys():
@@ -355,7 +398,7 @@ class SimpleAciUiLogServer(SocketServer.TCPServer,
     def __init__(self, addr, cert=None,
                  requestHandler=SimpleLogRequestHandler,
                  logRequests=False, allow_none=False, bind_and_activate=True,
-                 location=None):
+                 location=None, excludes=[]):
         self.logRequests = logRequests
         self._cert = cert
         self.daemon = True
@@ -365,7 +408,8 @@ class SimpleAciUiLogServer(SocketServer.TCPServer,
                 location = "/" + str(location)
             requestHandler.log_paths = [location]
 
-        SimpleLogDispatcher.__init__(self, allow_none)
+        SimpleLogDispatcher.__init__(self, allow_none=allow_none,
+                                     excludes=excludes)
         SocketServer.TCPServer.__init__(self, addr, requestHandler,
                                         bind_and_activate)
 
@@ -392,6 +436,7 @@ class SimpleAciUiLogServer(SocketServer.TCPServer,
     @cert.setter
     def cert(self, value):
         self._cert = value
+
 
 # Simple dispatch methods.  You can register these and override the default
 # behavior of just printing the data out.
@@ -440,6 +485,7 @@ def serve_forever(servers, poll_interval=0.5):
             if server in r:
                 server.handle_request()
 
+
 def main():
     parser = ArgumentParser('Remote APIC API Inspector and GUI Log Server')
     parser.add_argument('-a', '--apicip', help='If you have a multihomed ' +
@@ -454,6 +500,11 @@ def main():
                                                'the server you can tell it ' +
                                                'the apicip address.',
                         required=False, default='8.8.8.8')
+    parser.add_argument('-e', '--exclude', help='Exclude certain types of ' +
+                                                'common "noise" queries. ',
+                        action='append', nargs='*', default=[],
+                        choices=['subscriptionRefresh', 'aaaRefresh',
+                                 'topInfo'])
     parser.add_argument('-p', '--port', help='Local port to listen on,' +
                                              ' default=8987', default=8987,
                         type=int, required=False)
@@ -490,6 +541,9 @@ def main():
 
     logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(levelname)s - \n%(message)s')
+    if args.exclude:
+        # Flatten the list
+        args.exclude = [val for sublist in args.exclude for val in sublist]
 
     if not args.location.startswith("/"):
         args.location = "/" + str(args.location)
@@ -501,7 +555,8 @@ def main():
     # Instantiate a http server
     http_server = ThreadingSimpleAciUiLogServer(("", args.port),
                                        logRequests=args.requests_log,
-                                       location=args.location)
+                                       location=args.location,
+                                       excludes=args.exclude)
 
     if not args.cert:
         cert_file = tempfile.NamedTemporaryFile(delete=False)
@@ -514,16 +569,16 @@ def main():
     # Instantiate a https server as well
     https_server = ThreadingSimpleAciUiLogServer(("", args.sslport),
                                         cert=cert, location=args.location,
-                                        logRequests=args.requests_log)
+                                        logRequests=args.requests_log,
+                                        excludes=args.exclude)
 
     if not args.cert:
         os.unlink(cert_file.name)
 
     # Example of registering a function for a specific method.  The funciton
-    # needs to exist of course.  Note:  undefined seems to be the same as
-    # POST or EventChannelMessage but the logging facility on the APIC seems
-    # to get in a state where instead of setting the method properly it sets it
-    # to undefined.
+    # needs to exist of course.  Note:  undefined seems to be the same as a
+    # GET but the logging facility on the APIC seems to get in a state where
+    # instead of setting the method properly it sets it to undefined.
     # These registered functions could then be used to take specific actions or
     # be silent for specific methods.
     #http_server.register_function(GET)
