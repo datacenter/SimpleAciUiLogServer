@@ -33,31 +33,35 @@
 <h1>
 <a id="simpleaciuilogserver" class="anchor" href="#simpleaciuilogserver" aria-hidden="true"><span class="octicon octicon-link"></span></a>SimpleAciUiLogServer</h1>
 
-<p>A Simple HTTP server that accepts POSTs from the APIC UI as a remote API
+<p>A Simple HTTP/HTTPS server that accepts POSTs from the APIC UI as a remote API
 Inspector.</p>
 
-<p>The simplest method to use this module is to execute it as a standalone script:</p>
+<p>The simplest method to use this module is to execute it as a standalone script,
+however it is designed to allow it to be imported as a module as well.</p>
 
-<div class="highlight highlight-bash"><pre>    $ SimpleAci
-    SimpleAciUiLogServer     SimpleAciUiLogServer.py
-    $ SimpleAciUiLogServer
-    serving at:
-    http://10.1.2.11:8987/apiinspector
+<h2>
+<a id="standalone-script" class="anchor" href="#standalone-script" aria-hidden="true"><span class="octicon octicon-link"></span></a>Standalone Script</h2>
 
-    08:17:14 DEBUG -
-      method: GET
-      url: http://10.1.2.1/api/subscriptionRefresh.json<span class="pl-k">?</span>id=72057843163791365
-      response: {<span class="pl-s1"><span class="pl-pds">"</span>imdata<span class="pl-pds">"</span></span>:[]}
+<p>.. code-block:: bash</p>
 
-    08:17:14 DEBUG -
-      method: GET
-      url: http://10.1.2.1/api/subscriptionRefresh.json<span class="pl-k">?</span>id=72057843163791488
-      response: {<span class="pl-s1"><span class="pl-pds">"</span>imdata<span class="pl-pds">"</span></span>:[]}
+<pre><code>$ SimpleAci
+SimpleAciUiLogServer     SimpleAciUiLogServer.py
+$ SimpleAciUiLogServer
+serving at:
+http://10.10.10.107:8987/apiinspector
+https://10.10.10.107:8443/apiinspector
 
-    08:17:14 DEBUG -
-      method: GET
-      url: http://10.1.2.1/api/subscriptionRefresh.json<span class="pl-k">?</span>id=72057843163791514
-      response: {<span class="pl-s1"><span class="pl-pds">"</span>imdata<span class="pl-pds">"</span></span>:[]}</pre></div>
+2015-01-25 05:07:11,040 DEBUG - 
+
+    method: GET
+       url: http://172.1.1.176/api/node/class/fabricTopology.json?subscription=yes
+   payload: None
+    # objs: 1
+  response: {"totalCount":"1","subscriptionId":"72057761559216131","imdata":
+  [{"fabricTopology":{"attributes":{"childAction":"","dn":"topology",
+  "lcOwn":"local","modTs":"2015-01-08T02:10:36.147+04:00","monPolDn":
+  "uni/fabric/monfab-default","status":""}}}]}
+</code></pre>
 
 <p>The standalone script can be invoked using any of these commands:</p>
 
@@ -74,103 +78,193 @@ Inspector.</p>
 as the APIC.  This allows the standalone server to be able to print the
 correct IP address when it announces what IP address, port and location
 it is listening on if the server is multi-homed.</li>
-<li>-p or --port: The port the server should listen on.</li>
+<li>-p or --port: The http port the server should listen on.</li>
+<li>-s or --sslport: The https port the server should listen on.</li>
+<li>-c or --cert: The server certificate for HTTPS connections.</li>
 <li>-l or --location: The local path that the server should look for, anything
 sent to the server outside of this location will result in the server
-returinging a 404.  The default is /apiinspector</li>
+returning a 404.  The default is /apiinspector</li>
 <li>-r or --logrequests: This will cause the server to log a message about the
-POST request to sys.stderr, the default is False, possible values are True and
-False.</li>
+POST request to sys.stderr, the default is False, possible values are True
+and False.</li>
+<li>-d or --delete-imdata: Strip out the im_data and other info at the im_data
+level from the payloads and responses.</li>
+<li>-n or --nice-output: Pretty print the payloads and responses.</li>
+<li>-i or --indent: Number of spaces to indent when pretty printing.</li>
 </ul>
 
-<p>When the module is run as a standalone script it simply prints the log messages
-to sys.stdout in a somewhat easy to read format.</p>
+<p>When the module is run as a standalone script it simply logs the messages
+to sys.stdout using the standard logging module.</p>
+
+<h2>
+<a id="importing-as-a-module" class="anchor" href="#importing-as-a-module" aria-hidden="true"><span class="octicon octicon-link"></span></a>Importing as a module</h2>
 
 <p>You can also import the module and use it as a server as part of another
-application.  This provides you with flexibility as it allows you to register
-callback functions for each "method" found in the log message.  From this, you
-could do things like use the data from the log message for other purposes or
-filter out specific logs messages based on the "method."  The methods that the
-APIC uses are:</p>
+application.  This provides you with flexibility as it allows the registration
+of callback functions for each HTTP method (GET, POST, DELETE, etc) found in the
+log message.  From this, it is possible to do things like use the data from the
+log message for other purposes or filter out specific logs messages based on
+the HTTP method.  The methods that the APIC uses are:</p>
 
 <ul>
 <li>GET</li>
 <li>POST</li>
 <li>EventChannelMessage</li>
-<li>undefined - NOTE: it seems like this method gets set for unknown reasons.
-I need to investigate it more.</li>
+<li>undefined - NOTE: This is an APIC bug that is fixed in versions after 1.0(2*)</li>
 </ul>
 
 <p>Example:</p>
 
-<div class="highlight highlight-python"><pre>    <span class="pl-k">&gt;&gt;&gt;</span>
-    <span class="pl-k">&gt;&gt;&gt;</span> <span class="pl-k">from</span> SimpleAciUiLogServer.SimpleAciUiLogServer <span class="pl-k">import</span> \
-    ... SimpleAciUiLogServer
-    <span class="pl-k">&gt;&gt;&gt;</span> <span class="pl-st">def</span> GET(<span class="pl-k">**</span>kwargs):
-    ...     <span class="pl-k">print</span> <span class="pl-s1"><span class="pl-pds">"</span>Got a GET<span class="pl-pds">"</span></span>
-    ...
-    <span class="pl-k">&gt;&gt;&gt;</span> <span class="pl-st">def</span> POST(<span class="pl-k">**</span>kwargs):
-    ...     <span class="pl-k">print</span> <span class="pl-s1"><span class="pl-pds">"</span>Kwargs/params: <span class="pl-c1">{0}</span><span class="pl-pds">"</span></span>.format(kwargs)
-    ...
-    <span class="pl-k">&gt;&gt;&gt;</span> server <span class="pl-k">=</span> SimpleAciUiLogServer((<span class="pl-s1"><span class="pl-pds">"</span><span class="pl-pds">"</span></span>, <span class="pl-c1">8987</span>), <span class="pl-vpf">location</span><span class="pl-k">=</span><span class="pl-s1"><span class="pl-pds">'</span>/acilogs<span class="pl-pds">'</span></span>)
-    <span class="pl-k">&gt;&gt;&gt;</span> server.register_function(GET)
-    <span class="pl-k">&gt;&gt;&gt;</span> server.register_function(POST)
-    <span class="pl-k">&gt;&gt;&gt;</span> server.serve_forever()
-    Got a GET
-    Got a GET
-    <span class="pl-c1">0</span>8:<span class="pl-c1">50</span>:<span class="pl-c1">52</span> DEBUG <span class="pl-k">-</span>
-      method: Event Channel Message
-      response: {<span class="pl-s1"><span class="pl-pds">"</span>subscriptionId<span class="pl-pds">"</span></span>:[<span class="pl-s1"><span class="pl-pds">"</span>72057843163791520<span class="pl-pds">"</span></span>,<span class="pl-s1"><span class="pl-pds">"</span>72057843163791488<span class="pl-pds">"</span></span>,
-      <span class="pl-s1"><span class="pl-pds">"</span>72057843163791521<span class="pl-pds">"</span></span>,<span class="pl-s1"><span class="pl-pds">"</span>72057843163791516<span class="pl-pds">"</span></span>],<span class="pl-s1"><span class="pl-pds">"</span>imdata<span class="pl-pds">"</span></span>:[{<span class="pl-s1"><span class="pl-pds">"</span>fvTenant<span class="pl-pds">"</span></span>:{
-      <span class="pl-s1"><span class="pl-pds">"</span>attributes<span class="pl-pds">"</span></span>:{<span class="pl-s1"><span class="pl-pds">"</span>childAction<span class="pl-pds">"</span></span>:<span class="pl-s1"><span class="pl-pds">"</span><span class="pl-pds">"</span></span>,<span class="pl-s1"><span class="pl-pds">"</span>dn<span class="pl-pds">"</span></span>:<span class="pl-s1"><span class="pl-pds">"</span>uni/tn-mtimm-simple2<span class="pl-pds">"</span></span>,
-      <span class="pl-s1"><span class="pl-pds">"</span>modTs<span class="pl-pds">"</span></span>:<span class="pl-s1"><span class="pl-pds">"</span>2014-11-24T12:50:36.706-04:00<span class="pl-pds">"</span></span>,<span class="pl-s1"><span class="pl-pds">"</span>rn<span class="pl-pds">"</span></span>:<span class="pl-s1"><span class="pl-pds">"</span><span class="pl-pds">"</span></span>,<span class="pl-s1"><span class="pl-pds">"</span>status<span class="pl-pds">"</span></span>:<span class="pl-s1"><span class="pl-pds">"</span>deleted<span class="pl-pds">"</span></span>}}}]}
+<p>.. code-block:: python</p>
 
-    <span class="pl-c1">0</span>8:<span class="pl-c1">50</span>:<span class="pl-c1">53</span> DEBUG <span class="pl-k">-</span>
-      method: Event Channel Message
-      response: {<span class="pl-s1"><span class="pl-pds">"</span>subscriptionId<span class="pl-pds">"</span></span>:[<span class="pl-s1"><span class="pl-pds">"</span>72057843163791523<span class="pl-pds">"</span></span>],
-      <span class="pl-s1"><span class="pl-pds">"</span>imdata<span class="pl-pds">"</span></span>:[{<span class="pl-s1"><span class="pl-pds">"</span>fvRsTenantMonPol<span class="pl-pds">"</span></span>:{<span class="pl-s1"><span class="pl-pds">"</span>attributes<span class="pl-pds">"</span></span>:{<span class="pl-s1"><span class="pl-pds">"</span>childAction<span class="pl-pds">"</span></span>:<span class="pl-s1"><span class="pl-pds">"</span><span class="pl-pds">"</span></span>,
-      <span class="pl-s1"><span class="pl-pds">"</span>dn<span class="pl-pds">"</span></span>:<span class="pl-s1"><span class="pl-pds">"</span>uni/tn-mtimm-simple2/rsTenantMonPol<span class="pl-pds">"</span></span>,
-      <span class="pl-s1"><span class="pl-pds">"</span>modTs<span class="pl-pds">"</span></span>:<span class="pl-s1"><span class="pl-pds">"</span>2014-11-24T12:50:36.706-04:00<span class="pl-pds">"</span></span>,<span class="pl-s1"><span class="pl-pds">"</span>rn<span class="pl-pds">"</span></span>:<span class="pl-s1"><span class="pl-pds">"</span><span class="pl-pds">"</span></span>,<span class="pl-s1"><span class="pl-pds">"</span>status<span class="pl-pds">"</span></span>:<span class="pl-s1"><span class="pl-pds">"</span>deleted<span class="pl-pds">"</span></span>}}}]}
+<pre><code>&gt;&gt;&gt; from SimpleAciUiLogServer.SimpleAciUiLogServer import \
+... SimpleAciUiLogServer
+&gt;&gt;&gt; import logging
+&gt;&gt;&gt; 
+&gt;&gt;&gt; logging.basicConfig(level=logging.DEBUG)
+&gt;&gt;&gt; def GET(**kwargs):
+...     logging.debug("Got a GET")
+... 
+&gt;&gt;&gt; def POST(**kwargs):
+...     logging.debug("Kwargs/params: {0}".format(kwargs))
+... 
+&gt;&gt;&gt; server = SimpleAciUiLogServer(("", 8987), location='/apiinspector')
+&gt;&gt;&gt; server.register_function(GET)
+&gt;&gt;&gt; server.register_function(POST)
+&gt;&gt;&gt; server.serve_forever()
+DEBUG:root:Got a GET
+DEBUG:root:
+    method: Event Channel Message
+       url: N/A
+   payload: N/A
+    # objs: 0
+  response: {"subscriptionId":["72057611234639895","72057611234640073"],
+  "imdata":[{"fvTenant":{"attributes":{"childAction":"","dn":
+  "uni/tn-mtimm-simple","modTs":"2015-01-23T23:04:28.838+00:00","rn":"",
+  "status":"deleted"}}}]}
 
-    Kwargs<span class="pl-k">/</span>params: {<span class="pl-s1"><span class="pl-pds">'</span>data<span class="pl-pds">'</span></span>: {<span class="pl-s1"><span class="pl-pds">'</span>url<span class="pl-pds">'</span></span>:
-    <span class="pl-s1"><span class="pl-pds">'</span>http://10.1.2.1/api/node/mo/uni.json<span class="pl-pds">'</span></span>, <span class="pl-s1"><span class="pl-pds">'</span>response<span class="pl-pds">'</span></span>: <span class="pl-s1"><span class="pl-pds">'</span>{"imdata":[]}<span class="pl-pds">'</span></span>,
-    <span class="pl-s1"><span class="pl-pds">'</span>preamble<span class="pl-pds">'</span></span>: <span class="pl-s1"><span class="pl-pds">'</span>08:50:53 DEBUG - <span class="pl-pds">'</span></span>, <span class="pl-s1"><span class="pl-pds">'</span>method<span class="pl-pds">'</span></span>: <span class="pl-s1"><span class="pl-pds">'</span>POST<span class="pl-pds">'</span></span>, <span class="pl-s1"><span class="pl-pds">'</span>payload<span class="pl-pds">'</span></span>:
-    <span class="pl-s1"><span class="pl-pds">'</span>{"polUni":{"attributes":{"dn":"uni","status":"modified"},<span class="pl-ii"></span></span>
-    <span class="pl-s1"><span class="pl-pds">"</span>children<span class="pl-pds">"</span></span>:[{<span class="pl-s1"><span class="pl-pds">"</span>fvTenant<span class="pl-pds">"</span></span>:{<span class="pl-s1"><span class="pl-pds">"</span>attributes<span class="pl-pds">"</span></span>:{<span class="pl-s1"><span class="pl-pds">"</span>dn<span class="pl-pds">"</span></span>:<span class="pl-s1"><span class="pl-pds">"</span>uni/tn-mtimm-simple2<span class="pl-pds">"</span></span>,
-    <span class="pl-s1"><span class="pl-pds">"</span>status<span class="pl-pds">"</span></span>:<span class="pl-s1"><span class="pl-pds">"</span>deleted<span class="pl-pds">"</span></span>},<span class="pl-s1"><span class="pl-pds">"</span>children<span class="pl-pds">"</span></span>:[]}}]}}<span class="pl-s1"><span class="pl-pds">'</span>}, <span class="pl-pds">'</span></span>layout<span class="pl-s1"><span class="pl-pds">'</span>: <span class="pl-pds">'</span></span>PatternLayout<span class="pl-s1"><span class="pl-pds">'</span>}<span class="pl-ii"></span></span>
-    Got a GET</pre></div>
+DEBUG:root:Kwargs/params: {'data': {'url':
+'http://172.1.1.5/api/node/mo/uni.json', 'response': '{"imdata":[]}', 
+'preamble': '18:00:12 DEBUG - ', 'method': 'POST', 'payload': '{"polUni":{
+"attributes":{"dn":"uni","status":"modified"},"children":[{"fvTenant":{
+"attributes":{"dn":"uni/tn-mtimm-simple","status":"deleted"},"children":[]}
+}]}}'}, 'layout': 'PatternLayout'}
+</code></pre>
 
-<p>Note that since there were no functions registered for the EventChannelMessage
-method, it went the default route which is to print info about the log message.
-However, both GET and POST have registered functions and they do different
-things than the default dispatch action.</p>
+<p>Note: since there were no functions registered for the EventChannelMessage
+method, SimpleAciUiLogServer sent that data to the default dispatch method
+which logs a formatted message. However, both GET and POST have registered
+functions and they do different things than the default dispatch method.</p>
 
 <p>It is also possible to override the _dispatch method to create your own
 dispatch logic, for example rather than dispatch based on method maybe you
 would like to dispatch based on subscription id.</p>
 
+<h2>
+<a id="multi-threaded-servers" class="anchor" href="#multi-threaded-servers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Multi-threaded Servers</h2>
+
+<p>The SimpleAciUiLogServer class is single threaded.  If many APIC's are going
+to be reporting into the same server, one transaction may block another until
+the first is complete.  This scenario can be avoided using the
+ThreadingSimpleAciUiLogServer class.  The ThreadingSimpleAciUiLogServer class
+provides a threaded server that can accept multiple connections at the same
+time.  When using the ThreadingSimpleAciUiLogServer it is best to use the
+logging functionality from the Python standard library rather than print
+statements because the logging module is thread safe.</p>
+
+<p>If you need to listen on multiple ports you will need to instantiate multiple,
+SimpleAciUiLogServer or ThreadingSimpleAciUiLogServers.  This might be done
+to start up both a http and https server. The module provides its own
+serve_forever() method that dispatches to multiple server instances.  Otherwise
+the servers own serve_forever() method is appropriate.  The standalone script
+offers an example of doing this.</p>
+
+<h2>
+<a id="https-tlsssl-support" class="anchor" href="#https-tlsssl-support" aria-hidden="true"><span class="octicon octicon-link"></span></a>HTTPS TLS/SSL Support</h2>
+
+<p>To accept HTTPS connections the SimpleAciUiLogServer or the
+ThreadingSimpleAciUiLogServer classes can be instantiated with the cert
+parameter pointed at a file that contains the servers certificate.  The module
+comes with an embedded self-signed certificate but use of this should be avoided
+in long-term production scenarios.  A self-signed certificate can be created
+using openssl:</p>
+
+<p>.. code-block:: bash</p>
+
+<pre><code>openssl req -new -x509 -keyout server.pem -out server.pem -days 36500 -nodes
+</code></pre>
+
+<p>When the cert parameter is passed to the class initializer and is not None, the
+socket is wrapped in ssl allowing the APIC to send https POST's to the server.</p>
+
+<p>If you are using self-signed certificates, you will most likely need to accept
+the certificate as a security exception in your browser before the APIC can send
+data to it.  This is usually a one-time configuration step and can most easily
+be accomplished by using your browser to browse to the server.</p>
+
+<h2>
+<a id="available-class-variables" class="anchor" href="#available-class-variables" aria-hidden="true"><span class="octicon octicon-link"></span></a>Available Class Variables</h2>
+
+<p>The servers provided inherit from a log dispatch class that offers some class
+variables to control how the server formats the log messages.  Those variables
+are:</p>
+
+<ul>
+<li>prettyprint - Format the payload and responses so they are easier to read. The
+default is False.</li>
+<li>indent - When using prettyprint, how much indent should be used.  The default
+is 4.</li>
+<li>strip_imdata - When printing responses, do not print the whole response, only
+print the contents of the im_data field.  The default is False.</li>
+</ul>
+
+<p>All three of these variables are booleans and should be set to True or False.</p>
+
+<h2>
+<a id="server-test" class="anchor" href="#server-test" aria-hidden="true"><span class="octicon octicon-link"></span></a>Server Test</h2>
+
+<p>By convention the APIC does not use the GET method when communicating with the
+logging server.  The APIC only uses POST to POST the log messages to the server.
+However, the servers provided by this module do offer a GET method to provide
+a means of testing them.  If the server is working you will get the following
+response:  The server is working.</p>
+
+<h2>
+<a id="apic-configuration" class="anchor" href="#apic-configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>APIC Configuration</h2>
+
 <p>Once the server is running, you can start remote logging from the APIC UI by
 selecting "Start Remote Logging" from the 'welcome, username' menu in the top
 right corner of the APIC UI.</p>
 
-<p><img src="https://raw.githubusercontent.com/datacenter/SimpleAciUiLogServer/master/start_remote_logging.png" alt="Image of starting remote logging menu item"></p>
+<p>.. image:: <a href="https://raw.githubusercontent.com/datacenter/SimpleAciUiLogServer/master/start_remote_logging.png">https://raw.githubusercontent.com/datacenter/SimpleAciUiLogServer/master/start_remote_logging.png</a></p>
 
 <p>Then enter the URL the server is listening on:</p>
 
-<p><img src="https://raw.githubusercontent.com/datacenter/SimpleAciUiLogServer/master/enter_remote_logging_info.png" alt="Image of entering server URL"></p>
+<p>.. image:: <a href="https://raw.githubusercontent.com/datacenter/SimpleAciUiLogServer/master/enter_remote_logging_info.png">https://raw.githubusercontent.com/datacenter/SimpleAciUiLogServer/master/enter_remote_logging_info.png</a></p>
 
 <p>If you need to disable the remote logging from the APIC, you can do so from
 the same menu and selecting 'Stop Remote Logging.'</p>
 
-<p><img src="https://raw.githubusercontent.com/datacenter/SimpleAciUiLogServer/master/stop_remote_logging.png" alt="Image of starting remote logging menu item"></p>
+<p>.. image:: <a href="https://raw.githubusercontent.com/datacenter/SimpleAciUiLogServer/master/stop_remote_logging.png">https://raw.githubusercontent.com/datacenter/SimpleAciUiLogServer/master/stop_remote_logging.png</a></p>
 
-<p>Limitations: Does not support HTTPS/TLS at this time.</p>
+<p>Note:  If https is used to connect to the APIC, the server that is
+instantiated will also need to be able to accept https connections.</p>
 
-<p>Written by <a href="https://github.com/mtimm" class="user-mention">@mtimm</a></p>
+<h2>
+<a id="debugging" class="anchor" href="#debugging" aria-hidden="true"><span class="octicon octicon-link"></span></a>Debugging</h2>
 
-<p>Based on code written by Fredrik Lundh &amp; Brian Quinlan.</p>
+<p>If things do not seem to be working, the first step should be to open the
+developer tools/javascript console for the browser and see if there are
+any errors being printed as you click on various items in the APIC GUI.</p>
+
+<h2>
+<a id="author-and-acknowledgements" class="anchor" href="#author-and-acknowledgements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Author and Acknowledgements</h2>
+
+<p>Written by Mike Timm (<a href="mailto:mtimm@cisco.com">mtimm@cisco.com</a>)
+Based on code written by Fredrik Lundh &amp; Brian Quinlan.</p>
       </section>
     </div>
 
+    
   </body>
 </html>
