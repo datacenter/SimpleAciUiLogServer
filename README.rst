@@ -45,7 +45,7 @@ The standalone script also allows you to set several options:
 * -c or --cert: The server certificate for HTTPS connections.
 * -l or --location: The local path that the server should look for, anything
   sent to the server outside of this location will result in the server
-  returinging a 404.  The default is /apiinspector
+  returning a 404.  The default is /apiinspector
 * -r or --logrequests: This will cause the server to log a message about the
   POST request to sys.stderr, the default is False, possible values are True
   and False.
@@ -134,11 +134,11 @@ If you need to listen on multiple ports you will need to instantiate multiple,
 SimpleAciUiLogServer or ThreadingSimpleAciUiLogServers.  This might be done
 to start up both a http and https server. The module provides its own
 serve_forever() method that dispatches to multiple server instances.  Otherwise
-the servers own serve_forever() method is approriate.  The standalone script
+the servers own serve_forever() method is appropriate.  The standalone script
 offers an example of doing this.
 
-HTTPS TLS/SSL Suppoert
-----------------------
+HTTPS TLS/SSL Support
+---------------------
 
 To accept HTTPS connections the SimpleAciUiLogServer or the
 ThreadingSimpleAciUiLogServer classes can be instantiated with the cert parameter

@@ -1,13 +1,11 @@
 import os
 
-try:
-    from setuptools import setup, find_packages
-except ImportError:
-    from distutils.core import setup, find_packages
+from setuptools import setup, find_packages
 
 with open('LICENSE.txt') as f:
-    license = f.read()
+    lic = f.read()
 
+__version__ = ""
 exec(open(os.path.join('SimpleAciUiLogServer', 'version.py')).read())
 
 PKGNAME = 'SimpleAciUiLogServer'
@@ -22,7 +20,7 @@ setup(
     packages=find_packages(),
     url=URL,
     download_url = DOWNLOADURL,
-    license=license,
+    license=lic,
     author='Mike Timm',
     author_email='mtimm@cisco.com',
     zip_safe=False,
