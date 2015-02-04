@@ -26,7 +26,10 @@ Standalone Script
            url: http://172.1.1.176/api/node/class/fabricTopology.json?subscription=yes
        payload: None
         # objs: 1
-      response: {"totalCount":"1","subscriptionId":"72057761559216131","imdata":[{"fabricTopology":{"attributes":{"childAction":"","dn":"topology","lcOwn":"local","modTs":"2015-01-08T02:10:36.147+04:00","monPolDn":"uni/fabric/monfab-default","status":""}}}]}
+      response: {"totalCount":"1","subscriptionId":"72057761559216131","imdata":
+      [{"fabricTopology":{"attributes":{"childAction":"","dn":"topology",
+      "lcOwn":"local","modTs":"2015-01-08T02:10:36.147+04:00","monPolDn":
+      "uni/fabric/monfab-default","status":""}}}]}
 
 The standalone script can be invoked using any of these commands:
 
@@ -61,11 +64,11 @@ Importing as a module
 ---------------------
 
 You can also import the module and use it as a server as part of another
-application.  This provides you with flexibility as it allows you to register
-callback functions for each HTTP method (GET, POST, DELETE, etc) found in the
-log message.  From this, you could do things like use the data from the log
-message for other purposes or filter out specific logs messages based on said
-HTTP method.  The methods that the APIC uses are:
+application.  This provides you with flexibility as it allows the registration
+of callback functions for each HTTP method (GET, POST, DELETE, etc) found in the
+log message.  From this, it is possible to do things like use the data from the
+log message for other purposes or filter out specific logs messages based on
+the HTTP method.  The methods that the APIC uses are:
 
 * GET
 * POST
@@ -141,10 +144,11 @@ HTTPS TLS/SSL Support
 ---------------------
 
 To accept HTTPS connections the SimpleAciUiLogServer or the
-ThreadingSimpleAciUiLogServer classes can be instantiated with the cert parameter
-pointed at a file that contains the servers certificate.  The module comes with
-an embedded self-signed certificate but use of this should be avoided in long-term
-production scenarios.  A self-signed certificate can be created using openssl:
+ThreadingSimpleAciUiLogServer classes can be instantiated with the cert
+parameter pointed at a file that contains the servers certificate.  The module
+comes with an embedded self-signed certificate but use of this should be avoided
+in long-term production scenarios.  A self-signed certificate can be created
+using openssl:
 
 .. code-block:: bash
 
@@ -155,8 +159,8 @@ socket is wrapped in ssl allowing the APIC to send https POST's to the server.
 
 If you are using self-signed certificates, you will most likely need to accept
 the certificate as a security exception in your browser before the APIC can send
-data to it.  This is usually a one-time configuration step and can most easily be
-accomplished by using your browser to browse to the server.
+data to it.  This is usually a one-time configuration step and can most easily
+be accomplished by using your browser to browse to the server.
 
 Available Class Variables
 -------------------------
@@ -165,9 +169,12 @@ The servers provided inherit from a log dispatch class that offers some class
 variables to control how the server formats the log messages.  Those variables
 are:
 
-* prettyprint - Format the payload and responses so they are easier to read. The default is False.
-* indent - When using prettyprint, how much indent should be used.  The default is 4.
-* strip_imdata - When printing responses, do not print the whole response, only print the contents of the im_data field.  The default is False.
+* prettyprint - Format the payload and responses so they are easier to read. The
+  default is False.
+* indent - When using prettyprint, how much indent should be used.  The default
+  is 4.
+* strip_imdata - When printing responses, do not print the whole response, only
+  print the contents of the im_data field.  The default is False.
 
 All three of these variables are booleans and should be set to True or False.
 
