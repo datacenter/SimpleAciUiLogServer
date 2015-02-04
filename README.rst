@@ -8,6 +8,7 @@ Inspector.
 The simplest method to use this module is to execute it as a standalone script,
 however it is designed to allow it to be imported as a module as well.
 
+-----------------
 Standalone Script
 -----------------
 
@@ -60,6 +61,37 @@ The standalone script also allows you to set several options:
 When the module is run as a standalone script it simply logs the messages
 to sys.stdout using the standard logging module.
 
+------------------
+APIC Configuration
+------------------
+
+Once the server is running, you can start remote logging from the APIC UI by
+selecting "Start Remote Logging" from the 'welcome, username' menu in the top
+right corner of the APIC UI.
+
+.. image:: https://raw.githubusercontent.com/datacenter/SimpleAciUiLogServer/master/start_remote_logging.png
+
+Then enter the URL the server is listening on:
+
+.. image:: https://raw.githubusercontent.com/datacenter/SimpleAciUiLogServer/master/enter_remote_logging_info.png
+
+If you need to disable the remote logging from the APIC, you can do so from
+the same menu and selecting 'Stop Remote Logging.'
+
+.. image:: https://raw.githubusercontent.com/datacenter/SimpleAciUiLogServer/master/stop_remote_logging.png
+
+Note:  If https is used to connect to the APIC, the server that is
+instantiated will also need to be able to accept https connections.
+
+---------
+Debugging
+---------
+
+If things do not seem to be working, the first step should be to open the
+developer tools/javascript console for the browser and see if there are
+any errors being printed as you click on various items in the APIC GUI.
+
+---------------------
 Importing as a module
 ---------------------
 
@@ -121,8 +153,9 @@ It is also possible to override the \_dispatch method to create your own
 dispatch logic, for example rather than dispatch based on method maybe you
 would like to dispatch based on subscription id.
 
+++++++++++++++++++++++
 Multi-threaded Servers
-----------------------
+++++++++++++++++++++++
 
 The SimpleAciUiLogServer class is single threaded.  If many APIC's are going
 to be reporting into the same server, one transaction may block another until
@@ -140,8 +173,9 @@ serve_forever() method that dispatches to multiple server instances.  Otherwise
 the servers own serve_forever() method is appropriate.  The standalone script
 offers an example of doing this.
 
++++++++++++++++++++++
 HTTPS TLS/SSL Support
----------------------
++++++++++++++++++++++
 
 To accept HTTPS connections the SimpleAciUiLogServer or the
 ThreadingSimpleAciUiLogServer classes can be instantiated with the cert
@@ -162,8 +196,9 @@ the certificate as a security exception in your browser before the APIC can send
 data to it.  This is usually a one-time configuration step and can most easily
 be accomplished by using your browser to browse to the server.
 
++++++++++++++++++++++++++
 Available Class Variables
--------------------------
++++++++++++++++++++++++++
 
 The servers provided inherit from a log dispatch class that offers some class
 variables to control how the server formats the log messages.  Those variables
@@ -178,43 +213,18 @@ are:
 
 All three of these variables are booleans and should be set to True or False.
 
+-----------
 Server Test
 -----------
 
 By convention the APIC does not use the GET method when communicating with the
 logging server.  The APIC only uses POST to POST the log messages to the server.
 However, the servers provided by this module do offer a GET method to provide
-a means of testing them.  If the server is working you will get the following
-response:  The server is working.
+a means of testing them.  For example it is possible to open a web browser and
+browse to the server that has been started.  If the server is working a small
+message is provided about pointing the APIC to that server.
 
-APIC Configuration
-------------------
-
-Once the server is running, you can start remote logging from the APIC UI by
-selecting "Start Remote Logging" from the 'welcome, username' menu in the top
-right corner of the APIC UI.
-
-.. image:: https://raw.githubusercontent.com/datacenter/SimpleAciUiLogServer/master/start_remote_logging.png
-
-Then enter the URL the server is listening on:
-
-.. image:: https://raw.githubusercontent.com/datacenter/SimpleAciUiLogServer/master/enter_remote_logging_info.png
-
-If you need to disable the remote logging from the APIC, you can do so from
-the same menu and selecting 'Stop Remote Logging.'
-
-.. image:: https://raw.githubusercontent.com/datacenter/SimpleAciUiLogServer/master/stop_remote_logging.png
-
-Note:  If https is used to connect to the APIC, the server that is
-instantiated will also need to be able to accept https connections.
-
-Debugging
----------
-
-If things do not seem to be working, the first step should be to open the
-developer tools/javascript console for the browser and see if there are
-any errors being printed as you click on various items in the APIC GUI.
-
+---------------------------
 Author and Acknowledgements
 ---------------------------
 
