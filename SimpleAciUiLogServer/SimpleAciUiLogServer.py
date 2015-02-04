@@ -608,6 +608,8 @@ def main():
         cert_file.write(server_cert)
         cert_file.close()
         cert = cert_file.name
+        print("\n+++WARNING+++ Using an embedded self-signed certificate for " +
+              "HTTPS, this is not secure.\n")
     else:
         cert = args.cert
 
@@ -640,10 +642,14 @@ def main():
     # and easy copy/paste in the APIC UI.
     ip = [(s.connect((args.apicip, 80)), s.getsockname()[0], s.close()) for s in
           [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]
-    print "serving at:"
-    print "http://" + str(ip) + ":" + str(args.port) + args.location
-    print "https://" + str(ip) + ":" + str(args.sslport) + args.location
-    print
+
+    print("Servers are running and reachable via:\n")
+    print("http://" + str(ip) + ":" + str(args.port) + args.location)
+    print("https://" + str(ip) + ":" + str(args.sslport) + args.location + "\n")
+    print("Make sure your APIC(s) are configured to send log messages: " +
+          "welcome username -> Start Remote Logging")
+    print("Note: If you connect to your APIC via HTTPS, configure the " +
+          "remote logging to use the https server.")
     serve_forever([http_server, https_server])
 
 

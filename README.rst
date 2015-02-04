@@ -8,6 +8,8 @@ Inspector.
 The simplest method to use this module is to execute it as a standalone script,
 however it is designed to allow it to be imported as a module as well.
 
+<http://datacenter.github.io/SimpleAciUiLogServer>
+
 -----------------
 Standalone Script
 -----------------
@@ -82,6 +84,17 @@ the same menu and selecting 'Stop Remote Logging.'
 
 Note:  If https is used to connect to the APIC, the server that is
 instantiated will also need to be able to accept https connections.
+
+-----------
+Server Test
+-----------
+
+By convention the APIC does not use the GET method when communicating with the
+logging server.  The APIC only uses POST to POST the log messages to the server.
+However, the servers provided by this module do offer a GET method to provide
+a means of testing them.  For example it is possible to open a web browser and
+browse to the server that has been started.  If the server is working a small
+message is provided about pointing the APIC to that server.
 
 ---------
 Debugging
@@ -212,17 +225,6 @@ are:
   print the contents of the im_data field.  The default is False.
 
 All three of these variables are booleans and should be set to True or False.
-
------------
-Server Test
------------
-
-By convention the APIC does not use the GET method when communicating with the
-logging server.  The APIC only uses POST to POST the log messages to the server.
-However, the servers provided by this module do offer a GET method to provide
-a means of testing them.  For example it is possible to open a web browser and
-browse to the server that has been started.  If the server is working a small
-message is provided about pointing the APIC to that server.
 
 ---------------------------
 Author and Acknowledgements
