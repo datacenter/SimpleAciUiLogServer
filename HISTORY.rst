@@ -9,7 +9,9 @@ Release History
 - Threading support added via the ThreadingSimpleAciUiLogServer class, this
   prevents one request that is being processed from blocking another request
   from being processed.
-- Added support for HTTPS sessions
+- Support for HTTPS sessions (#6)
+- The standalone script starts both a http and https server and allows
+  connections to be established on each independently
 - More robust logging by using logging from the standard library
 - Pretty printing payload and response elements
 - **Experimental** Stripping of the imdata field - may be removed in the future
@@ -17,6 +19,8 @@ Release History
   --sslport (-s), --cert (-c), --delete-imdata (-d), --nice-output (-n)
 - Release history (this file)
 - Total count of objects added to the logging output
+- Added responses for GET requests from the servers that indicate the server
+  is working
 
 **Bug Fixes**
 
