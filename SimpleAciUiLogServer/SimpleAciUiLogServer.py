@@ -377,7 +377,7 @@ class SimpleLogRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     def decode_request_content(self, datafile):
         content_type = self.headers.get("Content-Type", "notype").lower()
-        if content_type == 'application/x-www-form-urlencoded':
+        if ('application/x-www-form-urlencoded' in content_type):
             # The data is provided in a urlencoded format.  Unencode it into
             # cgi FieldStorage/MiniFieldStorage objects in a form container
             form = cgi.FieldStorage(
