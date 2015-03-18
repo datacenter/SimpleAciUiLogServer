@@ -236,10 +236,13 @@ class SimpleLogDispatcher(object):
 
 
 class SimpleLogRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
-    def __init__(self, request, client_address, server):
+    def __init__(self, request, client_address, server,
+                 app_name='SimpleAciUiLogServer'):
+        # Instantiate the base class
         BaseHTTPServer.BaseHTTPRequestHandler.__init__(self, request,
                                                        client_address, server)
-        self._log_paths = None
+        self.log_paths = None
+        self.app_name = app_name
 
     @property
     def log_paths(self):
@@ -248,6 +251,14 @@ class SimpleLogRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     @log_paths.setter
     def log_paths(self, value):
         self._log_paths = value
+
+    @property
+    def app_name(self):
+        return self._app_name
+
+    @app_name.setter
+    def app_name(self, value):
+        self._app_name = value
 
     def is_log_path_valid(self):
         if self.log_paths:
@@ -278,16 +289,17 @@ class SimpleLogRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         if not self.is_log_path_valid():
             self.report_404()
             return
+        scheme = "https" if self.server.cert is not None else "http"
         resp = '<html>'
         resp += '<head>\n'
-        resp += '  <title>SimpleAciUiLogServer is working</title>\n'
+        resp += '  <title>{0}</title>\n'.format(self.app_name)
         resp += '</head>\n'
         resp += '<body>\n'
         resp += '  <center>\n'
-        resp += '    <h2>SimpleAciUiLogServer is working via HTTP</h2>\n'
+        resp += '    <h2>{0} is working via {1}</h2>\n'.format(self.app_name,
+                                                              scheme.upper())
         resp += '  </center>\n'
         resp += '  <p>Please point your APIC at:<br /><br />'
-        scheme = "https" if self.server.cert != '' else "http"
         ip = [(s.connect((self.client_address[0], 80)), s.getsockname()[0],
                s.close()) for s in [socket.socket(socket.AF_INET,
                                                   socket.SOCK_DGRAM)]][0][1]
@@ -425,7 +437,7 @@ class SimpleAciUiLogServer(SocketServer.TCPServer,
     def __init__(self, addr, cert=None,
                  requestHandler=SimpleLogRequestHandler,
                  logRequests=False, allow_none=False, bind_and_activate=True,
-                 location=None, excludes=None):
+                 location=None, excludes=None, app_name='SimpleAciUiLogServer'):
         self.logRequests = logRequests
         self._cert = cert
         self.daemon = True
@@ -436,6 +448,8 @@ class SimpleAciUiLogServer(SocketServer.TCPServer,
             if not location.startswith("/"):
                 location = "/" + str(location)
             requestHandler.log_paths = [location]
+
+        requestHandler.app_name = app_name
 
         SimpleLogDispatcher.__init__(self, allow_none=allow_none,
                                      excludes=excludes)
@@ -534,53 +548,60 @@ def main():
         sys.exit(0)
 
     parser = ArgumentParser('Remote APIC API Inspector and GUI Log Server')
-    parser.add_argument('-a', '--apicip', help='If you have a multihomed ' +
-                                               'system, where the apic is ' +
-                                               'on a private network, the ' +
-                                               'server will print the ' +
-                                               'ip address your local ' +
-                                               'system has a route to ' +
-                                               '8.8.8.8.  If you want the ' +
-                                               'server to print a more ' +
-                                               'accurate ip address for ' +
-                                               'the server you can tell it ' +
-                                               'the apicip address.',
-                        required=False, default='8.8.8.8')
-    parser.add_argument('-e', '--exclude', help='Exclude certain types of ' +
-                                                'common "noise" queries. ',
-                        action='append', nargs='*', default=[],
-                        choices=['subscriptionRefresh', 'aaaRefresh',
-                                 'topInfo'])
-    parser.add_argument('-p', '--port', help='Local port to listen on,' +
-                                             ' default=8987', default=8987,
-                        type=int, required=False)
-    parser.add_argument('-s', '--sslport', help='Local port to listen on ' +
-                                                ' for ssl connections, ' +
-                                                ' default=8443', default=8443,
-                        type=int, required=False)
-    parser.add_argument('-c', '--cert', help='The server certificate file' +
-                                             ' for ssl connections, ' +
-                                             ' default="server.pem"',
-                        type=str, required=False)
-    parser.add_argument('-l', '--location', help='Location that transaction ' +
-                                                 'logs are being sent to, ' +
-                                                 'default=/apiinspector',
-                        default="/apiinspector", required=False)
-    parser.add_argument('-r', '--requests-log', help='Log server requests ' +
-                                                     'and response codes to ' +
-                                                     'standard error',
-                        action='store_true', default=False, required=False)
-    parser.add_argument('-d', '--delete_imdata', help='Strip the imdata ' +
-                                                      'from the response and ' +
-                                                      'payload',
-                        action='store_true', default=False, required=False)
-    parser.add_argument('-n', '--nice-output', help='Pretty print the ' +
-                                                    'response and payload',
-                        action='store_true', default=False, required=False)
-    parser.add_argument('-i', '--indent', help='The number of spaces to ' +
-                                               'indent when pretty ' +
-                                               'printing',
-                        type=int, default=2, required=False)
+
+    parser.add_argument('-a', '--apicip', required=False, default='8.8.8.8',
+                        help='If you have a multihomed system, where the ' +
+                             'apic is on a private network, the server will ' +
+                             'print the ip address your local system has a ' +
+                             'route to 8.8.8.8.  If you want the server to ' +
+                             'print a more accurate ip address for the ' +
+                             'server you can tell it the apicip address.')
+
+    parser.add_argument('-c', '--cert', type=str, required=False,
+                        help='The server certificate file for ssl ' +
+                             'connections, default="server.pem"')
+
+    parser.add_argument('-d', '--delete_imdata', action='store_true',
+                        default=False, required=False,
+                        help='Strip the imdata from the response and payload')
+
+    parser.add_argument('-e', '--exclude', action='append', nargs='*',
+                        default=[], choices=['subscriptionRefresh',
+                                             'aaaRefresh',
+                                             'topInfo'],
+                        help='Exclude certain types of common noise queries.')
+
+    parser.add_argument('-i', '--indent', type=int, default=2, required=False,
+                        help='The number of spaces to indent when pretty ' +
+                             'printing')
+
+    parser.add_argument('-l', '--location', default='/apiinspector',
+                        required=False,
+                        help='Location that transaction logs are being ' +
+                             'sent to, default=/apiinspector')
+
+    parser.add_argument('-n', '--nice-output', action='store_true',
+                        default=False, required=False,
+                        help='Pretty print the response and payload')
+
+    parser.add_argument('-p', '--port', type=int, required=False, default=8987,
+                        help='Local port to listen on, default=8987')
+
+    parser.add_argument('-s', '--sslport', type=int, required=False,
+                        default=8443,
+                        help='Local port to listen on for ssl connections, ' +
+                             'default=8443')
+
+    parser.add_argument('-r', '--requests-log', action='store_true',
+                        default=False, required=False,
+                        help='Log server requests and response codes to ' +
+                             'standard error')
+
+    parser.add_argument('-t', '--title', default='SimpleAciUiLogServer',
+                        required=False,
+                        help='Change the name shown for this application ' +
+                             'when accessed with a GET request')
+
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.DEBUG,
@@ -600,7 +621,8 @@ def main():
     http_server = ThreadingSimpleAciUiLogServer(("", args.port),
                                                 logRequests=args.requests_log,
                                                 location=args.location,
-                                                excludes=args.exclude)
+                                                excludes=args.exclude,
+                                                app_name=args.title)
 
     if not args.cert:
         # Workaround ssl wrap socket not taking a file like object
@@ -618,7 +640,8 @@ def main():
                                                  cert=cert,
                                                  location=args.location,
                                                  logRequests=args.requests_log,
-                                                 excludes=args.exclude)
+                                                 excludes=args.exclude,
+                                                 app_name=args.title)
 
     signal.signal(signal.SIGINT, sigint_handler)  # Or whatever signal
 
