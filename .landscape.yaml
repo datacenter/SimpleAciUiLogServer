@@ -1,0 +1,14 @@
+doc-warnings: yes
+test-warnings: no
+strictness: veryhigh
+max-line-length: 80
+autodetect: yes
+
+dodgy:
+  disable:
+    - ssh_rsa_private_key
+
+pylint:
+  disable:
+    - unused-variable
+    - too-many-arguments
