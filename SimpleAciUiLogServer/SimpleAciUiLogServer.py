@@ -221,7 +221,7 @@ class SimpleLogDispatcher(object):
             return logging.DEBUG
 
     def _strip_imdata(self, json_dict):
-        if not 'imdata' in json_dict.keys():
+        if 'imdata' not in json_dict.keys():
             return "None"
         if self.strip_imdata:
             # Yeah we knowingly return an invalid json string
