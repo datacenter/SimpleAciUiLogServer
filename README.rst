@@ -18,7 +18,7 @@ SimpleAciUiLogServer
     :target: https://pypi.python.org/pypi/SimpleAciUiLogServer/
     :alt: Egg Status
 
-.. image:: https://pypip.in/license/SimpleAciUiLogServerbadge.svg
+.. image:: https://pypip.in/license/SimpleAciUiLogServer/badge.svg
     :target: https://pypi.python.org/pypi/SimpleAciUiLogServer/
     :alt: License
 
