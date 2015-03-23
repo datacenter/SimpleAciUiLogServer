@@ -71,7 +71,9 @@ TOBaHjC6ZZLRd77dd3s=
 
 
 class SimpleLogDispatcher(object):
+
     """A class to dispatch log messages."""
+
     # map log4javascript logging levels to python logging levels
     loglevel = {
         'DEBUG': logging.DEBUG,
@@ -100,7 +102,7 @@ class SimpleLogDispatcher(object):
         self.instance = instance
 
     def register_function(self, function, name=None):
-        """Registers a function to respond to Log requests.
+        """Register a function to respond to Log requests.
 
         The optional name argument can be used to set a Unicode name
         for the function.
@@ -244,7 +246,9 @@ class SimpleLogDispatcher(object):
 
 
 class SimpleLogRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+
     """A class to handle log requests."""
+
     def __init__(self, request, client_address, server,
                  app_name='SimpleAciUiLogServer'):
         """Initialize an instance of this class."""
@@ -449,7 +453,9 @@ class SimpleLogRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
 class SimpleAciUiLogServer(SocketServer.TCPServer,
                            SimpleLogDispatcher):
+
     """A simple server to handle ACI UI logging."""
+
     allow_reuse_address = True
     _send_traceback_header = False
 
@@ -530,10 +536,12 @@ class SimpleAciUiLogServer(SocketServer.TCPServer,
 # use a threaded server so multiple connections can send data simultaneously
 class ThreadingSimpleAciUiLogServer(SocketServer.ThreadingMixIn,
                                     SimpleAciUiLogServer):
+
     """Threading SimpleAciUiLogServer.
 
-    So that concurrent connections do not block.
+    Prevent concurrent connections do not block.
     """
+
     pass
 
 

@@ -1,3 +1,5 @@
+"""setup.py for SimpleAciUiLogServer."""
+
 import os
 
 from setuptools import setup, find_packages
