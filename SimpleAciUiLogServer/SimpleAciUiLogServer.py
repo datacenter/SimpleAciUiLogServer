@@ -255,21 +255,21 @@ class SimpleLogRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.app_name = app_name
 
     @property
-    def log_paths(self):
+    def log_paths(self):  # pylint:disable=function-redefined
         """A property to return log_paths."""
         return self._log_paths
 
-    @log_paths.setter
+    @log_paths.setter  # pylint:disable=function-redefined
     def log_paths(self, value):
         """A property to set log_paths."""
         self._log_paths = value
 
     @property
-    def app_name(self):
+    def app_name(self):  # pylint:disable=function-redefined
         """A property to get app_name."""
         return self._app_name
 
-    @app_name.setter
+    @app_name.setter  # pylint:disable=function-redefined
     def app_name(self, value):
         """A property to set app_name."""
         self._app_name = value
@@ -559,12 +559,12 @@ def main():
     # Setup a signal handler to catch control-c and clean up the cert temp file
     # No way to catch sigkill so try not to do that.
     # noinspection PyUnusedLocal
-    def sigint_handler(sig, frame):
+    def sigint_handler(sig, frame):   # pylint:disable=unused-argument
         """Handle interrupt signals."""
         if not args.cert:
             try:
                 os.unlink(cert)
-            except OSError:
+            except OSError:  # pylint:disable=pointless-except
                 pass
         print "Exiting..."
         sys.exit(0)
@@ -690,7 +690,8 @@ def main():
 
     print("Servers are running and reachable via:\n")
     print("http://" + str(ip_add) + ":" + str(args.port) + args.location)
-    print("https://" + str(ip_add) + ":" + str(args.sslport) + args.location + "\n")
+    print("https://" + str(ip_add) + ":" + str(args.sslport) + args.location +
+          "\n")
     print("Make sure your APIC(s) are configured to send log messages: " +
           "welcome username -> Start Remote Logging")
     print("Note: If you connect to your APIC via HTTPS, configure the " +
