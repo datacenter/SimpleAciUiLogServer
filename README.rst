@@ -2,6 +2,10 @@
 SimpleAciUiLogServer
 ====================
 
+.. image:: https://landscape.io/github/datacenter/SimpleAciUiLogServer/master/landscape.svg?style=flat
+   :target: https://landscape.io/github/datacenter/SimpleAciUiLogServer/master
+   :alt: Code Health
+
 A Simple HTTP/HTTPS server that accepts POSTs from the APIC UI as a remote API
 Inspector.
 
