@@ -327,7 +327,7 @@ class SimpleLogRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         resp += '</html>'
         self.send_200_resp(resp, "text/html")
 
-    def do_POST(self):
+    def do_POST(self):  # pylint:disable=invalid-name
         """Handle HTTP/S POST requests.
 
         Attempts to interpret all HTTP POST requests as Log calls,
@@ -443,7 +443,7 @@ class SimpleLogRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     def log_request(self, code='-', size='-'):
         """Selectively log an accepted request."""
-        if self.server.logRequests:
+        if self.server.log_requests:
             BaseHTTPServer.BaseHTTPRequestHandler.log_request(self, code, size)
 
 
@@ -454,11 +454,11 @@ class SimpleAciUiLogServer(SocketServer.TCPServer,
     _send_traceback_header = False
 
     def __init__(self, addr, cert=None,
-                 requestHandler=SimpleLogRequestHandler,
-                 logRequests=False, allow_none=False, bind_and_activate=True,
+                 request_handler=SimpleLogRequestHandler,
+                 log_requests=False, allow_none=False, bind_and_activate=True,
                  location=None, excludes=None, app_name='SimpleAciUiLogServer'):
         """Initialize an instance of this class."""
-        self.logRequests = logRequests
+        self.log_requests = log_requests
         self._cert = cert
         self.daemon = True
         if excludes is None:
@@ -467,13 +467,13 @@ class SimpleAciUiLogServer(SocketServer.TCPServer,
         if location is not None:
             if not location.startswith("/"):
                 location = "/" + str(location)
-            requestHandler.log_paths = [location]
+            request_handler.log_paths = [location]
 
-        requestHandler.app_name = app_name
+        request_handler.app_name = app_name
 
         SimpleLogDispatcher.__init__(self, allow_none=allow_none,
                                      excludes=excludes)
-        SocketServer.TCPServer.__init__(self, addr, requestHandler,
+        SocketServer.TCPServer.__init__(self, addr, request_handler,
                                         bind_and_activate)
 
         # [Bug #1222790] If possible, set close-on-exec flag; if a
@@ -496,7 +496,7 @@ class SimpleAciUiLogServer(SocketServer.TCPServer,
 
     @cert.setter
     def cert(self, value):
-        """Set the name of the file containing the server certificate for https."""
+        """Set the name of the file with the server certificate for https."""
         self._cert = value
 
 
@@ -544,9 +544,9 @@ def serve_forever(servers, poll_interval=0.5):
     For non-threading servers simply use the native server_forever function.
     """
     while True:
-        r, w, e = select.select(servers, [], [], poll_interval)
+        ready, wait, excep = select.select(servers, [], [], poll_interval)
         for server in servers:
-            if server in r:
+            if server in ready:
                 server.handle_request()
 
 
@@ -641,7 +641,7 @@ def main():
 
     # Instantiate a http server
     http_server = ThreadingSimpleAciUiLogServer(("", args.port),
-                                                logRequests=args.requests_log,
+                                                log_requests=args.requests_log,
                                                 location=args.location,
                                                 excludes=args.exclude,
                                                 app_name=args.title)
@@ -661,7 +661,7 @@ def main():
     https_server = ThreadingSimpleAciUiLogServer(("", args.sslport),
                                                  cert=cert,
                                                  location=args.location,
-                                                 logRequests=args.requests_log,
+                                                 log_requests=args.requests_log,
                                                  excludes=args.exclude,
                                                  app_name=args.title)
 
@@ -685,12 +685,12 @@ def main():
     # easily and quickly interogate the socket to get the source IP address
     # used to connect to this subnet which we can then print out to make for
     # and easy copy/paste in the APIC UI.
-    ip = [(s.connect((args.apicip, 80)), s.getsockname()[0], s.close()) for s in
-          [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]
+    ip_add = [(s.connect((args.apicip, 80)), s.getsockname()[0], s.close()) for
+              s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]
 
     print("Servers are running and reachable via:\n")
-    print("http://" + str(ip) + ":" + str(args.port) + args.location)
-    print("https://" + str(ip) + ":" + str(args.sslport) + args.location + "\n")
+    print("http://" + str(ip_add) + ":" + str(args.port) + args.location)
+    print("https://" + str(ip_add) + ":" + str(args.sslport) + args.location + "\n")
     print("Make sure your APIC(s) are configured to send log messages: " +
           "welcome username -> Start Remote Logging")
     print("Note: If you connect to your APIC via HTTPS, configure the " +

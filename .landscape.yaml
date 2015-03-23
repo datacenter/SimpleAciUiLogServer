@@ -7,9 +7,14 @@ autodetect: yes
 dodgy:
   run: no
 
+pep8:
+  disable:
+    - N802
+
 pylint:
   disable:
     - unused-variable
     - too-many-arguments
     - star-args
     - C0325
+    - too-few-public-methods

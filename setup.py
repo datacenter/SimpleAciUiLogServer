@@ -6,8 +6,8 @@ with open('LICENSE.txt') as f:
     LICENSE = f.read()
 
 __version__ = ""
-version = open(os.path.join('SimpleAciUiLogServer', 'version.py')).read()
-exec(version)  # pylint:disable=exec-used
+VERSION = open(os.path.join('SimpleAciUiLogServer', 'version.py')).read()
+exec(VERSION)  # pylint:disable=exec-used
 
 PKGNAME = 'SimpleAciUiLogServer'
 URL = 'https://github.com/datacenter/' + PKGNAME
