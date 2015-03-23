@@ -3,10 +3,11 @@ import os
 from setuptools import setup, find_packages
 
 with open('LICENSE.txt') as f:
-    lic = f.read()
+    LICENSE = f.read()
 
 __version__ = ""
-exec(open(os.path.join('SimpleAciUiLogServer', 'version.py')).read())
+version = open(os.path.join('SimpleAciUiLogServer', 'version.py')).read()
+exec(version)  # pylint:disable=exec-used
 
 PKGNAME = 'SimpleAciUiLogServer'
 URL = 'https://github.com/datacenter/' + PKGNAME
@@ -19,8 +20,8 @@ setup(
     long_description=open('README.rst').read(),
     packages=find_packages(),
     url=URL,
-    download_url = DOWNLOADURL,
-    license=lic,
+    download_url=DOWNLOADURL,
+    license=LICENSE,
     author='Mike Timm',
     author_email='mtimm@cisco.com',
     zip_safe=False,
