@@ -172,8 +172,8 @@ class SimpleLogDispatcher(object):
         return False
 
     @staticmethod
-    """Extract object count if any."""
     def _get_total_count(response_dict):
+        """Extract object count if any."""
         try:
             return response_dict['total_count']
         except KeyError:  # bug
