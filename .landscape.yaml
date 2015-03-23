@@ -5,10 +5,11 @@ max-line-length: 80
 autodetect: yes
 
 dodgy:
-  disable:
-    - ssh_rsa_private_key
+  run: no
 
 pylint:
   disable:
     - unused-variable
     - too-many-arguments
+    - star-args
+    - C0325

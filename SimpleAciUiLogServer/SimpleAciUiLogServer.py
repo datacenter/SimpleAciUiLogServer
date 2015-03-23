@@ -1,7 +1,6 @@
 #!/usr/bin/env python
-"""
-A Simple HTTP server that accepts POSTs from the APIC UI as a remote API
-Inspector.
+
+"""A Simple HTTP server that acts as a remote API Inspector for the APIC GUI.
 
 Written by Mike Timm (mtimm@cisco.com)
 Based on code written by Fredrik Lundh & Brian Quinlan.
@@ -28,7 +27,7 @@ try:
 except ImportError:
     fcntl = None
 
-server_cert = """
+SERVER_CERT = """
 -----BEGIN RSA PRIVATE KEY-----
 MIICXAIBAAKBgQC+oA+hYsF3uBIMt7i1ELfUFnyf4/MKM/Ylmy4yBc0/YhqANXYk
 so3+gAGkgRlv9ODdsFS7KvjzyaT0kjgA3ahDPyvtroAOWsdFdHJvtS4Ek1WI1Bee
@@ -72,6 +71,7 @@ TOBaHjC6ZZLRd77dd3s=
 
 
 class SimpleLogDispatcher(object):
+    """A class to dispatch log messages."""
     # map log4javascript logging levels to python logging levels
     loglevel = {
         'DEBUG': logging.DEBUG,
@@ -86,6 +86,7 @@ class SimpleLogDispatcher(object):
     strip_imdata = False
 
     def __init__(self, allow_none=False, excludes=None):
+        """Initialize a SimpleLogDispatcher instance."""
         self.funcs = {}
         self.instance = None
         self.allow_none = allow_none
@@ -95,6 +96,7 @@ class SimpleLogDispatcher(object):
             self.excludes = excludes
 
     def register_instance(self, instance):
+        """Register an instance of a class to dispatch to."""
         self.instance = instance
 
     def register_function(self, function, name=None):
@@ -108,10 +110,12 @@ class SimpleLogDispatcher(object):
         self.funcs[name] = function
 
     def dispatch(self, method, params):
+        """Dispatch log messages."""
         method = method.replace(" ", "")
         self._dispatch(method, params)
 
     def _dispatch(self, method, params):
+        """Internal dispatch method."""
         func = None
         try:
             # check to see if a matching function has been registered
@@ -141,20 +145,21 @@ class SimpleLogDispatcher(object):
                 url = self._get_url(method, **params)
                 payload = self._get_payload(method, **params)
                 response, response_dict = self._get_response(**params)
-                totalCount = self._get_totalCount(response_dict)
+                total_count = self._get_total_count(response_dict)
                 # return if we should exclude this log message
                 if self._excludes(method, url):
                     return ""
                 datastring += "    method: {0}\n".format(method)
                 datastring += "       url: {0}\n".format(url)
                 datastring += "   payload: {0}\n".format(payload)
-                datastring += "    # objs: {0}\n".format(totalCount)
+                datastring += "    # objs: {0}\n".format(total_count)
                 datastring += "  response: {0}\n".format(
                     self._strip_imdata(response_dict))
             logging.log(level, datastring)
             return datastring
 
     def _excludes(self, method, url):
+        """Internal method to exclude certain types of log messages."""
         if method != 'GET':
             return False
         for excl in self.excludes:
@@ -167,16 +172,16 @@ class SimpleLogDispatcher(object):
         return False
 
     @staticmethod
-    def _get_totalCount(response_dict):
-        # extract object count if any
+    """Extract object count if any."""
+    def _get_total_count(response_dict):
         try:
-            return response_dict['totalCount']
+            return response_dict['total_count']
         except KeyError:  # bug
             return '0'
 
     @staticmethod
     def _get_response(**params):
-        # extract the response if any
+        """Extract the respone if any."""
         try:
             response = params['data']['response']
             response_dict = json.loads(response)
@@ -186,7 +191,7 @@ class SimpleLogDispatcher(object):
         return response, response_dict
 
     def _get_payload(self, method, **params):
-        # extract the payload if any
+        """Extract the payload if any."""
         try:
             payload = params['data']['payload']
             if self.prettyprint:
@@ -198,7 +203,7 @@ class SimpleLogDispatcher(object):
 
     @staticmethod
     def _get_url(method, **params):
-        # extract the URL
+        """Extract the URL."""
         try:
             url = params['data']['url']
         except KeyError:
@@ -207,13 +212,14 @@ class SimpleLogDispatcher(object):
 
     @staticmethod
     def _get_method(**params):
-        # extract the HTTP method (verb)
+        """Extract the HTTP method (verb)."""
         try:
             return params['data']['method']
         except KeyError:
             return None
 
     def _get_loglevel(self, **params):
+        """Exract the loglevel if any."""
         try:
             preamble = params['data']['preamble']
             return self.loglevel[preamble.split(" ")[1]]
@@ -221,6 +227,7 @@ class SimpleLogDispatcher(object):
             return logging.DEBUG
 
     def _strip_imdata(self, json_dict):
+        """Strip out the imdata."""
         if 'imdata' not in json_dict.keys():
             return "None"
         if self.strip_imdata:
@@ -230,14 +237,17 @@ class SimpleLogDispatcher(object):
             return self._pretty_print(json_dict)
 
     def _pretty_print(self, json_dict):
+        """Pretty print the logging message."""
         if self.prettyprint:
             return "\n" + json.dumps(json_dict, indent=self.indent)
         return json.dumps(json_dict)
 
 
 class SimpleLogRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+    """A class to handle log requests."""
     def __init__(self, request, client_address, server,
                  app_name='SimpleAciUiLogServer'):
+        """Initialize an instance of this class."""
         # Instantiate the base class
         BaseHTTPServer.BaseHTTPRequestHandler.__init__(self, request,
                                                        client_address, server)
@@ -246,21 +256,26 @@ class SimpleLogRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     @property
     def log_paths(self):
+        """A property to return log_paths."""
         return self._log_paths
 
     @log_paths.setter
     def log_paths(self, value):
+        """A property to set log_paths."""
         self._log_paths = value
 
     @property
     def app_name(self):
+        """A property to get app_name."""
         return self._app_name
 
     @app_name.setter
     def app_name(self, value):
+        """A property to set app_name."""
         self._app_name = value
 
     def is_log_path_valid(self):
+        """Make sure the log_paths is valid."""
         if self.log_paths:
             return self.path in self.log_paths
         else:
@@ -268,6 +283,7 @@ class SimpleLogRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             return True
 
     def send_200_resp(self, response, content_type):
+        """Send a HTTP 200 (OK) response."""
         self.send_response(200)
         self.send_header("Content-type", content_type)
         if response is not None:
@@ -280,8 +296,8 @@ class SimpleLogRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         if response is not None:
             self.wfile.write(response)
 
-    def do_GET(self):
-        """Handles the HTTP GET request.
+    def do_GET(self):  # pylint:disable=invalid-name
+        """Handle HTTP GET requests.
 
         Simply returns a small amount of info so you can tell the server is
         functioning.
@@ -297,13 +313,13 @@ class SimpleLogRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         resp += '<body>\n'
         resp += '  <center>\n'
         resp += '    <h2>{0} is working via {1}</h2>\n'.format(self.app_name,
-                                                              scheme.upper())
+                                                               scheme.upper())
         resp += '  </center>\n'
         resp += '  <p>Please point your APIC at:<br /><br />'
-        ip = [(s.connect((self.client_address[0], 80)), s.getsockname()[0],
-               s.close()) for s in [socket.socket(socket.AF_INET,
-                                                  socket.SOCK_DGRAM)]][0][1]
-        resp += '      {0}://{1}:{2}{3}</p>'.format(scheme, ip,
+        ip_add = [(s.connect((self.client_address[0], 80)), s.getsockname()[0],
+                  s.close()) for s in [socket.socket(socket.AF_INET,
+                                                     socket.SOCK_DGRAM)]][0][1]
+        resp += '      {0}://{1}:{2}{3}</p>'.format(scheme, ip_add,
                                                     self.server.server_address[
                                                         1],
                                                     self.path)
@@ -312,7 +328,7 @@ class SimpleLogRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.send_200_resp(resp, "text/html")
 
     def do_POST(self):
-        """Handles the HTTP/S POST request.
+        """Handle HTTP/S POST requests.
 
         Attempts to interpret all HTTP POST requests as Log calls,
         which are forwarded to the server's _dispatch method for handling.
@@ -328,15 +344,15 @@ class SimpleLogRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             # begin to have problems (bug #792570).
             max_chunk_size = 10 * 1024 * 1024
             size_remaining = int(self.headers["content-length"])
-            L = []
+            chunk_list = []
             while size_remaining:
                 chunk_size = min(size_remaining, max_chunk_size)
                 chunk = self.rfile.read(chunk_size)
                 if not chunk:
                     break
-                L.append(chunk)
-                size_remaining -= len(L[-1])
-            data = ''.join(L)
+                chunk_list.append(chunk)
+                size_remaining -= len(chunk_list[-1])
+            data = ''.join(chunk_list)
 
             data = self.decode_request_content(StringIO(data))
             if data is None:
@@ -357,6 +373,7 @@ class SimpleLogRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     @staticmethod
     def extract_form_fields(item):
+        """Extract form fields from a POST."""
         # Strip off any trailing \r\n
         formitems = item.value.rstrip('\r\n')
         # Split the items by newline, this gives us a list of either 1, 3, 4
@@ -388,8 +405,9 @@ class SimpleLogRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         return itemdict
 
     def decode_request_content(self, datafile):
+        """Decode the request content based on content-type."""
         content_type = self.headers.get("Content-Type", "notype").lower()
-        if ('application/x-www-form-urlencoded' in content_type):
+        if 'application/x-www-form-urlencoded' in content_type:
             # The data is provided in a urlencoded format.  Unencode it into
             # cgi FieldStorage/MiniFieldStorage objects in a form container
             form = cgi.FieldStorage(
@@ -415,7 +433,7 @@ class SimpleLogRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         return None
 
     def report_404(self):
-        # Report a 404 error
+        """Report a HTTP 404 error."""
         self.send_response(404)
         response = 'No such page'
         self.send_header("Content-type", "text/plain")
@@ -431,6 +449,7 @@ class SimpleLogRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
 class SimpleAciUiLogServer(SocketServer.TCPServer,
                            SimpleLogDispatcher):
+    """A simple server to handle ACI UI logging."""
     allow_reuse_address = True
     _send_traceback_header = False
 
@@ -438,6 +457,7 @@ class SimpleAciUiLogServer(SocketServer.TCPServer,
                  requestHandler=SimpleLogRequestHandler,
                  logRequests=False, allow_none=False, bind_and_activate=True,
                  location=None, excludes=None, app_name='SimpleAciUiLogServer'):
+        """Initialize an instance of this class."""
         self.logRequests = logRequests
         self._cert = cert
         self.daemon = True
@@ -471,13 +491,12 @@ class SimpleAciUiLogServer(SocketServer.TCPServer,
 
     @property
     def cert(self):
-        """
-        The name of the file containing the server certificate for https
-        """
+        """The name of the file containing the server certificate for https."""
         return self._cert
 
     @cert.setter
     def cert(self, value):
+        """Set the name of the file containing the server certificate for https."""
         self._cert = value
 
 
@@ -487,42 +506,42 @@ class SimpleAciUiLogServer(SocketServer.TCPServer,
 # logging.debug("Got an undefined, params: {0}".format(params))
 #
 #
-#def GET(**params):
+# def GET(**params):
 #    #pass #- this would ignore all get's
 #    logging.debug("Got a GET, params: {0}".format(params))
 #
 #
-#def POST(**params):
+# def POST(**params):
 #    logging.debug("Got a POST, params: {0}".format(params))
 #
 #
-#def HEAD(**params):
+# def HEAD(**params):
 #    logging.debug("Got a HEAD, params: {0}".format(params))
 #
 #
-#def DELETE(**params):
+# def DELETE(**params):
 #    logging.debug("Got a DELETE, params: {0}".format(params))
 #
 #
-#def EventChannelMessage(**params):
+# def EventChannelMessage(**params):
 #    logging.debug("Got an Event Channel Message, params: {0}".format(params))
 
 
 # use a threaded server so multiple connections can send data simultaneously
 class ThreadingSimpleAciUiLogServer(SocketServer.ThreadingMixIn,
                                     SimpleAciUiLogServer):
-    """
-    Create a threading SimpleAciUiLogServer so that multiple concurrent
-    connections do not block eachother.
+    """Threading SimpleAciUiLogServer.
+
+    So that concurrent connections do not block.
     """
     pass
 
 
 # purposely not part of ThreadingSimpleAciUiLogServer
 def serve_forever(servers, poll_interval=0.5):
-    """
-    Handle n number of threading servers, for non-threading servers simply use
-    the native server_forever function.
+    """Handle n number of threading servers.
+
+    For non-threading servers simply use the native server_forever function.
     """
     while True:
         r, w, e = select.select(servers, [], [], poll_interval)
@@ -532,6 +551,8 @@ def serve_forever(servers, poll_interval=0.5):
 
 
 def main():
+    """The main function for when this is run as a standalone script."""
+
     # This is used to store the certificate filename
     cert = ""
 
@@ -539,6 +560,7 @@ def main():
     # No way to catch sigkill so try not to do that.
     # noinspection PyUnusedLocal
     def sigint_handler(sig, frame):
+        """Handle interrupt signals."""
         if not args.cert:
             try:
                 os.unlink(cert)
@@ -627,7 +649,7 @@ def main():
     if not args.cert:
         # Workaround ssl wrap socket not taking a file like object
         cert_file = tempfile.NamedTemporaryFile(delete=False)
-        cert_file.write(server_cert)
+        cert_file.write(SERVER_CERT)
         cert_file.close()
         cert = cert_file.name
         print("\n+++WARNING+++ Using an embedded self-signed certificate for " +
@@ -651,12 +673,12 @@ def main():
     # instead of setting the method properly it sets it to undefined.
     # These registered functions could then be used to take specific actions or
     # be silent for specific methods.
-    #http_server.register_function(GET)
-    #http_server.register_function(POST)
-    #http_server.register_function(HEAD)
-    #http_server.register_function(DELETE)
-    #http_server.register_function(undefined)
-    #http_server.register_function(EventChannelMessage)
+    # http_server.register_function(GET)
+    # http_server.register_function(POST)
+    # http_server.register_function(HEAD)
+    # http_server.register_function(DELETE)
+    # http_server.register_function(undefined)
+    # http_server.register_function(EventChannelMessage)
 
     # This simply sets up a socket for UDP which has a small trick to it.
     # It won't send any packets out that socket, but this will allow us to
