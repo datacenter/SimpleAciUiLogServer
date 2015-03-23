@@ -18,10 +18,6 @@ SimpleAciUiLogServer
     :target: https://pypi.python.org/pypi/SimpleAciUiLogServer/
     :alt: Egg Status
 
-.. image:: https://pypip.in/license/SimpleAciUiLogServer/badge.svg
-    :target: https://pypi.python.org/pypi/SimpleAciUiLogServer/
-    :alt: License
-
 A Simple HTTP/HTTPS server that accepts POSTs from the APIC UI as a remote API
 Inspector.
 
