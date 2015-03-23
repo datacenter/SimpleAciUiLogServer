@@ -255,8 +255,8 @@ class SimpleLogRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         # Instantiate the base class
         BaseHTTPServer.BaseHTTPRequestHandler.__init__(self, request,
                                                        client_address, server)
-        self.log_paths = None
-        self.app_name = app_name
+        self._log_paths = None
+        self._app_name = app_name
 
     @property
     def log_paths(self):  # pylint:disable=function-redefined
