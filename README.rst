@@ -6,6 +6,22 @@ SimpleAciUiLogServer
    :target: https://landscape.io/github/datacenter/SimpleAciUiLogServer/master
    :alt: Code Health
 
+.. image:: https://pypip.in/version/SimpleAciUiLogServer/badge.svg
+    :target: https://pypi.python.org/pypi/SimpleAciUiLogServer/
+    :alt: Latest Version
+
+.. image:: https://pypip.in/wheel/SimpleAciUiLogServer/badge.svg
+    :target: https://pypi.python.org/pypi/SimpleAciUiLogServer/
+    :alt: Wheel Status
+
+.. image:: https://pypip.in/egg/SimpleAciUiLogServer/badge.svg
+    :target: https://pypi.python.org/pypi/SimpleAciUiLogServer/
+    :alt: Egg Status
+
+.. image:: https://pypip.in/license/SimpleAciUiLogServerbadge.svg
+    :target: https://pypi.python.org/pypi/SimpleAciUiLogServer/
+    :alt: License
+
 A Simple HTTP/HTTPS server that accepts POSTs from the APIC UI as a remote API
 Inspector.
 
