@@ -560,7 +560,6 @@ def serve_forever(servers, poll_interval=0.5):
 
 def main():
     """The main function for when this is run as a standalone script."""
-
     # This is used to store the certificate filename
     cert = ""
 
