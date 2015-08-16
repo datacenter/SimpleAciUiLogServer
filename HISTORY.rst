@@ -1,8 +1,39 @@
 Release History
 ---------------
 
-1.1.1 (2014-11-24)
-++++++++++++++++++
+1.1.3 (2015-8-16)
++++++++++++++++++
+
+**Features Added**
+
+- Added a request types filter to allow filtering based on request type, i.e
+  POST, GET, undefined, EventChannelMessage, all.  The all option allows all
+  request types to be logged and is the default.  Please see the `-ty` and
+  `--type` options.
+- Slightly revised excludes to allow any exclude based on class name or rn when
+  initialized programtically.
+- Added aaaLogout, HDfabricOverallHealth5min-0, and all to the excludes as
+  options from the CLI.
+- Bump version to 1.1.3.
+
+**Bug Fixes**
+
+- handle excludes for registered functions, previously classes that inherited
+  SimpleAciUiLogServer or SimpleLogDispatcher had to handle this themselves.
+
+1.1.2 (??)
+++++++++++
+
+**Features Added**
+
+- ??
+
+**Bug Fixes**
+
+- ??
+
+1.1.1 (2014-11-24) - date does not seem right... 
+++++++++++++++++++++++++++++++++++++++++++++++++
 
 **Features Added**
 

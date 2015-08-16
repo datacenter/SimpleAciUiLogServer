@@ -87,7 +87,7 @@ class SimpleLogDispatcher(object):
     prettyprint = False
     strip_imdata = False
 
-    def __init__(self, allow_none=False, excludes=None):
+    def __init__(self, allow_none=False, excludes=None, request_types=None):
         """Initialize a SimpleLogDispatcher instance."""
         self.funcs = {}
         self.instance = None
@@ -96,6 +96,10 @@ class SimpleLogDispatcher(object):
             self.excludes = []
         else:
             self.excludes = excludes
+        if request_types is None:
+            self.request_types = ['all']
+        else:
+            self.request_types = request_types
 
     def register_instance(self, instance):
         """Register an instance of a class to dispatch to."""
@@ -114,6 +118,9 @@ class SimpleLogDispatcher(object):
     def dispatch(self, method, params):
         """Dispatch log messages."""
         method = method.replace(" ", "")
+        if ('all' not in self.request_types and
+            method not in self.request_types):
+            return
         self._dispatch(method, params)
 
     def _dispatch(self, method, params):
@@ -170,13 +177,12 @@ class SimpleLogDispatcher(object):
         """Internal method to exclude certain types of log messages."""
         if method != 'GET':
             return False
+        # maybe change to a dict?
         for excl in self.excludes:
-            if excl == "subscriptionRefresh" or excl == "aaaRefresh":
-                if str(excl) + ".json" in url:
-                    return True
-            elif excl == "topInfo":
-                if "info.json" in url:
-                    return True
+            if excl == "topInfo" and "info.json" in url:
+                return True
+            if str(excl) + ".json" in url:
+                return True
         return False
 
     @staticmethod
@@ -468,7 +474,8 @@ class SimpleAciUiLogServer(SocketServer.TCPServer,
     def __init__(self, addr, cert=None,
                  request_handler=SimpleLogRequestHandler,
                  log_requests=False, allow_none=False, bind_and_activate=True,
-                 location=None, excludes=None, app_name='SimpleAciUiLogServer'):
+                 location=None, excludes=None,
+                 app_name='SimpleAciUiLogServer', request_types=None):
         """Initialize an instance of this class."""
         self.log_requests = log_requests
         self._cert = cert
@@ -483,8 +490,12 @@ class SimpleAciUiLogServer(SocketServer.TCPServer,
 
         request_handler.app_name = app_name
 
+        if request_types is None:
+            request_types = ['all']
+
         SimpleLogDispatcher.__init__(self, allow_none=allow_none,
-                                     excludes=excludes)
+                                     excludes=excludes,
+                                     request_types=request_types)
         SocketServer.TCPServer.__init__(self, addr, request_handler,
                                         bind_and_activate)
 
@@ -603,7 +614,9 @@ def main():
     parser.add_argument('-e', '--exclude', action='append', nargs='*',
                         default=[], choices=['subscriptionRefresh',
                                              'aaaRefresh',
-                                             'topInfo'],
+                                             'aaaLogout',
+                                             'HDfabricOverallHealth5min-0',
+                                             'topInfo', 'all'],
                         help='Exclude certain types of common noise queries.')
 
     parser.add_argument('-i', '--indent', type=int, default=2, required=False,
@@ -637,6 +650,11 @@ def main():
                         help='Change the name shown for this application ' +
                              'when accessed with a GET request')
 
+    parser.add_argument('-ty', '--type', action='append', nargs='*',
+                        default=['all'], choices=['POST', 'GET', 'undefined',
+                                                  'EventChannelMessage'],
+                        help='Limit logs to specific request types.')
+
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.DEBUG,
@@ -647,6 +665,10 @@ def main():
 
     if not args.location.startswith("/"):
         args.location = "/" + str(args.location)
+
+    if args.type:
+        # Flatten the list
+        args.type = [val for sublist in args.type for val in sublist]
 
     ThreadingSimpleAciUiLogServer.prettyprint = args.nice_output
     ThreadingSimpleAciUiLogServer.indent = args.indent
