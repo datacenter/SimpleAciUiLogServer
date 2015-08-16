@@ -131,6 +131,12 @@ class SimpleLogDispatcher(object):
                     func = method
 
         if func is not None:
+            # Handle any excludes so the classes that inherit from this one
+            # do not have to.
+            if 'data' in params.keys() and self._excludes(
+                    self._get_method(**params),
+                    self._get_url(method, **params)):
+                return ""
             return func(**params)
         else:
             # Log some default things if no functions are registered.
